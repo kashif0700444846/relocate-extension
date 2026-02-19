@@ -79,4 +79,28 @@ chrome.runtime.onMessage.addListener((message) => {
     window.dispatchEvent(
         new CustomEvent('__relocateSync', { detail: state })
     );
+
+    // Report to background that this tab is consuming the spoofed location
+    if (state.spoofEnabled) {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'GEO_CONSUMER_REPORT',
+                url: window.location.href,
+                title: document.title || window.location.hostname
+            });
+        } catch (e) { /* extension context invalidated */ }
+    }
+});
+
+// Also report on initial load if spoof is active
+chrome.storage.local.get(['spoofEnabled'], (data) => {
+    if (data.spoofEnabled) {
+        try {
+            chrome.runtime.sendMessage({
+                type: 'GEO_CONSUMER_REPORT',
+                url: window.location.href,
+                title: document.title || window.location.hostname
+            });
+        } catch (e) { /* extension context invalidated */ }
+    }
 });

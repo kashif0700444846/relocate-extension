@@ -116,6 +116,11 @@ function updateBadge(enabled) {
 }
 
 // ──────────────────────────────────────────────
+// Geolocation Consumer Tracking
+// ──────────────────────────────────────────────
+const geoConsumers = new Map(); // tabId → { url, title, lastSeen }
+
+// ──────────────────────────────────────────────
 // Message Router
 // ──────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -152,6 +157,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ count });
     });
     return true;
+  }
+
+  if (message.type === 'GEO_CONSUMER_REPORT') {
+    if (sender.tab && sender.tab.id) {
+      geoConsumers.set(sender.tab.id, {
+        url: message.url || sender.tab.url || '',
+        title: message.title || sender.tab.title || '',
+        lastSeen: Date.now()
+      });
+    }
+    sendResponse({ ok: true });
+  }
+
+  if (message.type === 'GET_GEO_CONSUMERS') {
+    // Clean up stale entries (older than 5 minutes)
+    const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+    for (const [tabId, info] of geoConsumers) {
+      if (info.lastSeen < fiveMinAgo) geoConsumers.delete(tabId);
+    }
+    const consumers = Array.from(geoConsumers.entries()).map(([tabId, info]) => ({
+      tabId, ...info
+    }));
+    sendResponse({ consumers });
   }
 
   return true;

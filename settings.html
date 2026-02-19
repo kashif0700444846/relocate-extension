@@ -12,7 +12,7 @@
         *::after {
             box-sizing: border-box;
             margin: 0;
-            padding: 0;
+            padding: 0
         }
 
         :root {
@@ -24,6 +24,7 @@
             --accent-dim: rgba(245, 158, 11, 0.08);
             --green: #10b981;
             --red: #ef4444;
+            --blue: #3b82f6;
             --text: #e2e8f0;
             --muted: #64748b;
             --mono: 'JetBrains Mono', 'Consolas', monospace;
@@ -36,22 +37,22 @@
             color: var(--text);
             min-height: 100vh;
             padding: 24px;
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 820px;
+            margin: 0 auto
         }
 
-        /* ===== HEADER ===== */
+        /* Header */
         .header {
             display: flex;
             align-items: center;
             gap: 14px;
             margin-bottom: 28px;
             padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
         }
 
         .header-icon {
-            font-size: 36px;
+            font-size: 36px
         }
 
         .header h1 {
@@ -60,21 +61,21 @@
             background: linear-gradient(135deg, var(--accent), #fb923c);
             -webkit-background-clip: text;
             background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-text-fill-color: transparent
         }
 
         .header p {
             font-size: 12px;
-            color: var(--muted);
+            color: var(--muted)
         }
 
-        /* ===== SECTIONS ===== */
+        /* Sections */
         .section {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 20px
         }
 
         .section-title {
@@ -83,45 +84,44 @@
             margin-bottom: 16px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 8px
         }
 
-        /* ===== TOGGLE ROWS ===== */
+        /* Toggle rows */
         .toggle-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05)
         }
 
         .toggle-row:last-child {
-            border-bottom: none;
+            border-bottom: none
         }
 
         .toggle-label {
             font-size: 13px;
-            color: var(--text);
+            color: var(--text)
         }
 
         .toggle-desc {
             font-size: 11px;
             color: var(--muted);
-            margin-top: 2px;
+            margin-top: 2px
         }
 
-        /* Toggle switch */
         .switch {
             position: relative;
             width: 40px;
             height: 22px;
-            flex-shrink: 0;
+            flex-shrink: 0
         }
 
         .switch input {
             opacity: 0;
             width: 0;
-            height: 0;
+            height: 0
         }
 
         .switch-slider {
@@ -130,7 +130,7 @@
             background: #333;
             border-radius: 22px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.2s
         }
 
         .switch-slider::before {
@@ -142,22 +142,22 @@
             top: 3px;
             background: #fff;
             border-radius: 50%;
-            transition: transform 0.2s;
+            transition: transform 0.2s
         }
 
         .switch input:checked+.switch-slider {
-            background: var(--accent);
+            background: var(--accent)
         }
 
         .switch input:checked+.switch-slider::before {
-            transform: translateX(18px);
+            transform: translateX(18px)
         }
 
-        /* ===== CUSTOM PRESETS ===== */
+        /* Presets */
         .presets-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
+            margin-bottom: 12px
         }
 
         .presets-table th {
@@ -167,18 +167,18 @@
             padding: 6px 8px;
             border-bottom: 1px solid var(--border);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.5px
         }
 
         .presets-table td {
             padding: 8px;
             font-size: 13px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04)
         }
 
         .presets-table .preset-emoji {
             text-align: center;
-            width: 30px;
+            width: 30px
         }
 
         .preset-del-btn {
@@ -189,47 +189,50 @@
             padding: 3px 8px;
             border-radius: 5px;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.15s
         }
 
         .preset-del-btn:hover {
-            background: rgba(239, 68, 68, 0.15);
+            background: rgba(239, 68, 68, 0.15)
         }
 
         .add-preset-form {
             display: flex;
             gap: 8px;
             align-items: flex-end;
-            flex-wrap: wrap;
+            flex-wrap: wrap
         }
 
         .add-preset-form .field {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 3px
         }
 
         .add-preset-form label {
             font-size: 10px;
             color: var(--muted);
-            text-transform: uppercase;
+            text-transform: uppercase
         }
 
-        .add-preset-form input {
+        .add-preset-form input,
+        .preset-search-input {
             background: var(--bg);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 13px;
-            width: 120px;
+            width: 120px
         }
 
-        .add-preset-form input[type="text"] {
-            width: 160px;
+        .add-preset-form input[type="text"],
+        .preset-search-input {
+            width: 100%
         }
 
-        .btn-add {
+        .btn-add,
+        .btn-search-preset {
             background: var(--accent);
             color: #000;
             border: none;
@@ -239,47 +242,62 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.15s;
-            white-space: nowrap;
+            white-space: nowrap
         }
 
-        .btn-add:hover {
-            background: #fb923c;
+        .btn-add:hover,
+        .btn-search-preset:hover {
+            background: #fb923c
         }
 
         .empty-msg {
             text-align: center;
             color: var(--muted);
             font-size: 12px;
-            padding: 16px 0;
+            padding: 16px 0
         }
 
-        /* ===== ROUTE SIMULATION ===== */
+        /* Preset search row */
+        .preset-search-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+            align-items: center;
+            position: relative
+        }
+
+        .preset-search-input {
+            flex: 1
+        }
+
+        /* Route simulation */
         .route-inputs {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 16px;
+            gap: 8px;
+            margin-bottom: 12px
         }
 
         .route-field {
             display: flex;
             align-items: center;
             gap: 8px;
+            position: relative
         }
 
         .route-field .point-badge {
             background: var(--accent-dim);
             color: var(--accent);
             font-weight: 800;
-            font-size: 12px;
-            width: 28px;
-            height: 28px;
+            font-size: 11px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            border: 1px solid var(--border);
+            border: 1px solid var(--border)
         }
 
         .route-field input {
@@ -287,19 +305,109 @@
             background: var(--bg);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 8px 12px;
+            padding: 7px 12px;
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 13px
         }
 
         .route-field input::placeholder {
-            color: var(--muted);
+            color: var(--muted)
         }
 
+        .route-remove-btn {
+            background: none;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--red);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex-shrink: 0
+        }
+
+        .route-remove-btn:hover {
+            background: rgba(239, 68, 68, 0.15)
+        }
+
+        .btn-add-waypoint {
+            background: var(--card2);
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 12px;
+            transition: all 0.15s
+        }
+
+        .btn-add-waypoint:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        /* Autocomplete dropdown */
+        .ac-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 34px;
+            right: 0;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            z-index: 999;
+            display: none;
+            margin-top: 2px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4)
+        }
+
+        .ac-dropdown.open {
+            display: block
+        }
+
+        .ac-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            gap: 8px;
+            align-items: center
+        }
+
+        .ac-item:hover {
+            background: var(--accent-dim)
+        }
+
+        .ac-item:last-child {
+            border-bottom: none
+        }
+
+        .ac-item-main {
+            color: var(--text);
+            font-weight: 600
+        }
+
+        .ac-item-sub {
+            color: var(--muted);
+            font-size: 11px
+        }
+
+        .ac-loading {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center
+        }
+
+        /* Mode & speed */
         .mode-row {
             display: flex;
             gap: 6px;
-            margin-bottom: 12px;
+            margin-bottom: 12px
         }
 
         .mode-btn {
@@ -312,40 +420,40 @@
             font-size: 12px;
             cursor: pointer;
             text-align: center;
-            transition: all 0.15s;
+            transition: all 0.15s
         }
 
         .mode-btn.active {
             background: var(--accent-dim);
             border-color: var(--accent);
             color: var(--accent);
-            font-weight: 700;
+            font-weight: 700
         }
 
         .mode-btn:hover:not(.active) {
-            border-color: rgba(245, 158, 11, 0.5);
+            border-color: rgba(245, 158, 11, 0.5)
         }
 
         .speed-row {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             padding: 10px 12px;
             background: var(--card2);
             border-radius: 8px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--border)
         }
 
         .speed-row label {
             font-size: 12px;
             color: var(--muted);
-            white-space: nowrap;
+            white-space: nowrap
         }
 
         .speed-row input[type="range"] {
             flex: 1;
-            accent-color: var(--accent);
+            accent-color: var(--accent)
         }
 
         .speed-val {
@@ -354,13 +462,45 @@
             color: var(--accent);
             min-width: 50px;
             text-align: right;
-            font-family: var(--mono);
+            font-family: var(--mono)
         }
 
+        /* Direction row */
+        .direction-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px
+        }
+
+        .dir-btn {
+            flex: 1;
+            padding: 7px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card2);
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s
+        }
+
+        .dir-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--blue);
+            color: var(--blue);
+            font-weight: 700
+        }
+
+        .dir-btn:hover:not(.active) {
+            border-color: rgba(59, 130, 246, 0.3)
+        }
+
+        /* Controls */
         .route-controls {
             display: flex;
             gap: 8px;
-            margin-bottom: 14px;
+            margin-bottom: 14px
         }
 
         .route-btn {
@@ -371,44 +511,44 @@
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.15s
         }
 
         .route-btn:disabled {
             opacity: 0.4;
-            cursor: not-allowed;
+            cursor: not-allowed
         }
 
         .btn-start {
             background: var(--green);
-            color: #fff;
+            color: #fff
         }
 
         .btn-start:hover:not(:disabled) {
-            background: #059669;
+            background: #059669
         }
 
         .btn-pause {
             background: var(--accent);
-            color: #000;
+            color: #000
         }
 
         .btn-pause:hover:not(:disabled) {
-            background: #fb923c;
+            background: #fb923c
         }
 
         .btn-stop {
             background: var(--red);
-            color: #fff;
+            color: #fff
         }
 
         .btn-stop:hover:not(:disabled) {
-            background: #dc2626;
+            background: #dc2626
         }
 
         /* Progress */
         .route-progress {
-            margin-bottom: 12px;
+            margin-bottom: 12px
         }
 
         .progress-bar-bg {
@@ -417,7 +557,7 @@
             background: var(--card2);
             border-radius: 6px;
             overflow: hidden;
-            margin-bottom: 6px;
+            margin-bottom: 6px
         }
 
         .progress-bar-fill {
@@ -425,58 +565,57 @@
             background: linear-gradient(90deg, var(--accent), var(--green));
             border-radius: 6px;
             transition: width 0.5s ease;
-            width: 0%;
+            width: 0%
         }
 
         .route-status {
             display: flex;
             justify-content: space-between;
             font-size: 11px;
-            color: var(--muted);
+            color: var(--muted)
         }
 
         .route-status .live {
             color: var(--green);
-            font-weight: 700;
+            font-weight: 700
         }
 
         /* Route map */
         .route-map-container {
             width: 100%;
-            height: 220px;
+            height: 240px;
             border-radius: var(--radius);
             overflow: hidden;
             border: 1px solid var(--border);
-            margin-bottom: 12px;
+            margin-bottom: 12px
         }
 
         #routeMap {
             width: 100%;
-            height: 100%;
+            height: 100%
         }
 
-        /* ===== FOOTER ===== */
+        /* Footer */
         .footer {
             text-align: center;
             color: var(--muted);
             font-size: 11px;
-            padding-top: 12px;
+            padding-top: 12px
         }
 
         .footer a {
             color: var(--accent);
-            text-decoration: none;
+            text-decoration: none
         }
 
         .footer a:hover {
-            text-decoration: underline;
+            text-decoration: underline
         }
     </style>
 </head>
 
 <body>
-
-    <!-- ===== HEADER ===== -->
+    <!-- Header -->
     <div class="header">
         <span class="header-icon">⚙️</span>
         <div>
@@ -485,47 +624,46 @@
         </div>
     </div>
 
-    <!-- ===== SECTION 1: DISPLAY PREFERENCES ===== -->
+    <!-- Section 1: Display Preferences -->
     <div class="section">
         <div class="section-title">🎨 Display Preferences</div>
-
         <div class="toggle-row">
             <div>
                 <div class="toggle-label">Show Coordinates</div>
                 <div class="toggle-desc">Display lat/lng input fields in the popup</div>
             </div>
-            <label class="switch">
-                <input type="checkbox" id="toggleCoords" checked />
-                <span class="switch-slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="toggleCoords" checked /><span
+                    class="switch-slider"></span></label>
         </div>
-
         <div class="toggle-row">
             <div>
                 <div class="toggle-label">Show Quick Presets</div>
                 <div class="toggle-desc">Show the built-in city presets grid</div>
             </div>
-            <label class="switch">
-                <input type="checkbox" id="togglePresets" checked />
-                <span class="switch-slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="togglePresets" checked /><span
+                    class="switch-slider"></span></label>
         </div>
-
         <div class="toggle-row">
             <div>
                 <div class="toggle-label">Show Recent Locations</div>
                 <div class="toggle-desc">Show your recently used locations</div>
             </div>
-            <label class="switch">
-                <input type="checkbox" id="toggleRecent" checked />
-                <span class="switch-slider"></span>
-            </label>
+            <label class="switch"><input type="checkbox" id="toggleRecent" checked /><span
+                    class="switch-slider"></span></label>
         </div>
     </div>
 
-    <!-- ===== SECTION 2: CUSTOM PRESETS ===== -->
+    <!-- Section 2: Custom Presets -->
     <div class="section">
         <div class="section-title">📌 Custom Presets</div>
+
+        <!-- Address search for presets -->
+        <div class="preset-search-row">
+            <input type="text" id="presetSearchInput" class="preset-search-input"
+                placeholder="🔍 Search address to auto-fill coordinates..." autocomplete="off" />
+            <button class="btn-search-preset" id="presetSearchBtn">Search</button>
+            <div class="ac-dropdown" id="presetAcDropdown"></div>
+        </div>
 
         <div id="presetsContainer">
             <div class="empty-msg" id="presetsEmpty">No custom presets yet. Add one below!</div>
@@ -544,42 +682,29 @@
         </div>
 
         <div class="add-preset-form">
-            <div class="field">
-                <label>Name</label>
-                <input type="text" id="presetNameInput" placeholder="e.g. Home 🏠" />
+            <div class="field"><label>Name</label><input type="text" id="presetNameInput" placeholder="e.g. Home 🏠" />
             </div>
-            <div class="field">
-                <label>Latitude</label>
-                <input type="number" id="presetLatInput" step="0.000001" placeholder="59.3293" />
-            </div>
-            <div class="field">
-                <label>Longitude</label>
-                <input type="number" id="presetLngInput" step="0.000001" placeholder="18.0686" />
-            </div>
+            <div class="field"><label>Latitude</label><input type="number" id="presetLatInput" step="0.000001"
+                    placeholder="59.3293" /></div>
+            <div class="field"><label>Longitude</label><input type="number" id="presetLngInput" step="0.000001"
+                    placeholder="18.0686" /></div>
             <button class="btn-add" id="addPresetBtn">+ Add Preset</button>
         </div>
     </div>
 
-    <!-- ===== SECTION 3: ROUTE SIMULATION ===== -->
+    <!-- Section 3: Route Simulation -->
     <div class="section">
         <div class="section-title">🛣️ Route Simulation</div>
 
-        <!-- Map -->
         <div class="route-map-container">
             <div id="routeMap"></div>
         </div>
 
-        <!-- Endpoints -->
-        <div class="route-inputs">
-            <div class="route-field">
-                <span class="point-badge">A</span>
-                <input type="text" id="routeStartInput" placeholder="🔍 Start location..." autocomplete="off" />
-            </div>
-            <div class="route-field">
-                <span class="point-badge">B</span>
-                <input type="text" id="routeEndInput" placeholder="🔍 End location..." autocomplete="off" />
-            </div>
+        <!-- Waypoints -->
+        <div class="route-inputs" id="routeWaypoints">
+            <!-- Rendered dynamically -->
         </div>
+        <button class="btn-add-waypoint" id="addWaypointBtn">+ Add Waypoint</button>
 
         <!-- Mode -->
         <div class="mode-row">
@@ -595,6 +720,13 @@
             <span class="speed-val" id="speedValue">50 km/h</span>
         </div>
 
+        <!-- Direction -->
+        <div class="direction-row">
+            <button class="dir-btn active" data-dir="forward" id="dirForward">➡️ Forward (A→Z)</button>
+            <button class="dir-btn" data-dir="backward" id="dirBackward">⬅️ Backward (Z→A)</button>
+            <button class="dir-btn" data-dir="loop" id="dirLoop">🔄 Loop</button>
+        </div>
+
         <!-- Controls -->
         <div class="route-controls">
             <button class="route-btn btn-start" id="routeStartBtn">▶️ Start</button>
@@ -608,16 +740,14 @@
                 <div class="progress-bar-fill" id="routeProgressBar"></div>
             </div>
             <div class="route-status">
-                <span id="routeStatusText">Idle — Set points A and B to begin</span>
+                <span id="routeStatusText">Add at least 2 waypoints to begin</span>
                 <span id="routeProgressPct">0%</span>
             </div>
         </div>
     </div>
 
-    <!-- ===== FOOTER ===== -->
-    <div class="footer">
-        <a href="#" id="backToPopup">← Back to Relocate</a>
-    </div>
+    <!-- Footer -->
+    <div class="footer"><a href="#" id="backToPopup">← Back to Relocate</a></div>
 
     <script src="lib/leaflet.js"></script>
     <script src="settings.js"></script>

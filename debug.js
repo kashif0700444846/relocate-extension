@@ -158,3 +158,46 @@ chrome.storage.onChanged.addListener(function (changes, area) {
         refresh();
     }
 });
+
+// ──────────────────────────────────────────────
+// LOCATION CONSUMERS — shows which sites use spoofed location
+// ──────────────────────────────────────────────
+var consumersArea = document.getElementById('consumersArea');
+
+function pollConsumers() {
+    chrome.runtime.sendMessage({ type: 'GET_GEO_CONSUMERS' }, function (response) {
+        if (!response || !response.consumers) {
+            consumersArea.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center">No data available</div>';
+            return;
+        }
+
+        var list = response.consumers;
+        if (list.length === 0) {
+            consumersArea.innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px;text-align:center">No sites are currently using your spoofed location</div>';
+            return;
+        }
+
+        var html = '';
+        list.forEach(function (c) {
+            var ago = Math.round((Date.now() - c.lastSeen) / 1000);
+            var agoText = ago < 60 ? ago + 's ago' : Math.round(ago / 60) + 'm ago';
+            var domain = '—';
+            try { domain = new URL(c.url).hostname; } catch (_e) { domain = c.url; }
+
+            html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05)">';
+            html += '<span style="font-size:18px">🌐</span>';
+            html += '<div style="flex:1;min-width:0">';
+            html += '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (c.title || domain) + '</div>';
+            html += '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + domain + '</div>';
+            html += '</div>';
+            html += '<div style="font-size:11px;color:var(--green);flex-shrink:0">' + agoText + '</div>';
+            html += '</div>';
+        });
+
+        consumersArea.innerHTML = html;
+    });
+}
+
+// Poll every 5 seconds
+pollConsumers();
+setInterval(pollConsumers, 5000);

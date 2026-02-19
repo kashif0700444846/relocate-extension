@@ -83,6 +83,13 @@ Then load unpacked from `chrome://extensions`.
 
 ## 📝 Changelog
 
+### v1.4.0
+- 🔍 **Live Address Autocomplete** — real-time address suggestions in route planner and custom presets
+- 📍 **Multi-Waypoint Routes** — add unlimited waypoints (A→B→C→D...) with add/remove buttons
+- 🔄 **Direction Controls** — forward (A→Z), backward (Z→A), or continuous loop mode
+- 📌 **Preset Address Search** — search address to auto-fill lat/lng when adding custom presets
+- 🌐 **Location Consumer Tracking** — debug page shows which sites/tabs are using your spoofed location
+
 ### v1.3.0
 - ⚙️ **Settings Page** — full-page settings with display toggles, custom presets, and route simulation
 - 📌 **Custom Presets** — create your own saved locations (add/delete from settings)

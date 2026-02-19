@@ -1,5 +1,7 @@
 // [Relocate] [settings.js] - Settings Page Logic
-// Features: Display toggles, custom presets CRUD, route simulation engine.
+// Features: Display toggles, custom presets CRUD with address search,
+//           route simulation engine with multi-waypoint, autocomplete,
+//           forward/backward/loop direction.
 
 'use strict';
 
@@ -20,11 +22,15 @@ const addPresetBtn = document.getElementById('addPresetBtn');
 const presetNameInput = document.getElementById('presetNameInput');
 const presetLatInput = document.getElementById('presetLatInput');
 const presetLngInput = document.getElementById('presetLngInput');
+const presetSearchInput = document.getElementById('presetSearchInput');
+const presetSearchBtn = document.getElementById('presetSearchBtn');
+const presetAcDropdown = document.getElementById('presetAcDropdown');
 
 // Route simulation
-const routeStartInput = document.getElementById('routeStartInput');
-const routeEndInput = document.getElementById('routeEndInput');
+const routeWaypointsContainer = document.getElementById('routeWaypoints');
+const addWaypointBtn = document.getElementById('addWaypointBtn');
 const modeBtns = document.querySelectorAll('.mode-btn');
+const dirBtns = document.querySelectorAll('.dir-btn');
 const speedSlider = document.getElementById('speedSlider');
 const speedValue = document.getElementById('speedValue');
 const routeStartBtn = document.getElementById('routeStartBtn');
@@ -39,27 +45,32 @@ const routeProgressPct = document.getElementById('routeProgressPct');
 // ──────────────────────────────────────────────
 let routeMap = null;
 let routeLayerGroup = null;
-let routeMarkerA = null;
-let routeMarkerB = null;
 let routePolyline = null;
 let routeMovingMarker = null;
 
+let waypoints = [
+    { lat: null, lng: null, name: '', inputId: 'wp_0' },
+    { lat: null, lng: null, name: '', inputId: 'wp_1' }
+];
+let wpCounter = 2;
+
 let routePoints = [];
 let routeMode = 'driving';
+let routeDirection = 'forward';
 let routeSpeedKmh = 50;
 let routeIndex = 0;
 let routeInterval = null;
 let routePaused = false;
+let routeGoingForward = true; // for loop mode
 
-let pointA = null;  // { lat, lng, name }
-let pointB = null;
+let acDebounceTimers = {};
 
 // ──────────────────────────────────────────────
 // DISPLAY PREFERENCES
 // ──────────────────────────────────────────────
 function loadDisplaySettings() {
     chrome.storage.local.get(['showCoords', 'showPresets', 'showRecent'], (data) => {
-        toggleCoords.checked = data.showCoords !== false;  // default true
+        toggleCoords.checked = data.showCoords !== false;
         togglePresets.checked = data.showPresets !== false;
         toggleRecent.checked = data.showRecent !== false;
     });
@@ -76,6 +87,82 @@ togglePresets.addEventListener('change', () => saveDisplaySetting('showPresets',
 toggleRecent.addEventListener('change', () => saveDisplaySetting('showRecent', toggleRecent.checked));
 
 // ──────────────────────────────────────────────
+// NOMINATIM AUTOCOMPLETE HELPER
+// ──────────────────────────────────────────────
+async function nominatimSearch(query, limit) {
+    if (!query || query.length < 2) return [];
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=${limit || 5}&addressdetails=0`;
+        const res = await fetch(url, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.4' }
+        });
+        const data = await res.json();
+        if (!Array.isArray(data)) return [];
+        return data.map(d => ({
+            lat: parseFloat(d.lat),
+            lng: parseFloat(d.lon),
+            name: d.display_name.split(', ').slice(0, 2).join(', '),
+            full: d.display_name
+        }));
+    } catch (err) {
+        console.error('[Settings] [Nominatim] [ERROR]', err.message);
+        return [];
+    }
+}
+
+function showAcDropdown(dropdown, results, onSelect) {
+    dropdown.innerHTML = '';
+    if (!results || results.length === 0) {
+        dropdown.classList.remove('open');
+        return;
+    }
+    results.forEach(r => {
+        const item = document.createElement('div');
+        item.className = 'ac-item';
+        const parts = r.full.split(', ');
+        item.innerHTML = `<span class="ac-item-main">${escapeHtml(parts[0])}</span><span class="ac-item-sub">${escapeHtml(parts.slice(1, 3).join(', '))}</span>`;
+        item.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            onSelect(r);
+            dropdown.classList.remove('open');
+        });
+        dropdown.appendChild(item);
+    });
+    dropdown.classList.add('open');
+}
+
+function showAcLoading(dropdown) {
+    dropdown.innerHTML = '<div class="ac-loading">Searching...</div>';
+    dropdown.classList.add('open');
+}
+
+function setupAutocomplete(inputEl, dropdownEl, onSelect) {
+    const timerId = inputEl.id || Math.random().toString();
+
+    inputEl.addEventListener('input', () => {
+        if (acDebounceTimers[timerId]) clearTimeout(acDebounceTimers[timerId]);
+        const query = inputEl.value.trim();
+        if (query.length < 2) {
+            dropdownEl.classList.remove('open');
+            return;
+        }
+        acDebounceTimers[timerId] = setTimeout(async () => {
+            showAcLoading(dropdownEl);
+            const results = await nominatimSearch(query, 5);
+            showAcDropdown(dropdownEl, results, onSelect);
+        }, 300);
+    });
+
+    inputEl.addEventListener('blur', () => {
+        setTimeout(() => dropdownEl.classList.remove('open'), 200);
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') dropdownEl.classList.remove('open');
+    });
+}
+
+// ──────────────────────────────────────────────
 // CUSTOM PRESETS
 // ──────────────────────────────────────────────
 function loadCustomPresets() {
@@ -86,16 +173,13 @@ function loadCustomPresets() {
 
 function renderCustomPresets(presets) {
     presetsBody.innerHTML = '';
-
     if (!presets || presets.length === 0) {
         presetsEmpty.style.display = 'block';
         presetsTable.style.display = 'none';
         return;
     }
-
     presetsEmpty.style.display = 'none';
     presetsTable.style.display = 'table';
-
     presets.forEach((p, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -115,6 +199,27 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+// Preset address search — fills lat/lng/name
+setupAutocomplete(presetSearchInput, presetAcDropdown, (result) => {
+    presetNameInput.value = result.name;
+    presetLatInput.value = result.lat.toFixed(6);
+    presetLngInput.value = result.lng.toFixed(6);
+    presetSearchInput.value = result.name;
+});
+
+presetSearchBtn.addEventListener('click', async () => {
+    const query = presetSearchInput.value.trim();
+    if (!query) return;
+    showAcLoading(presetAcDropdown);
+    const results = await nominatimSearch(query, 5);
+    showAcDropdown(presetAcDropdown, results, (result) => {
+        presetNameInput.value = result.name;
+        presetLatInput.value = result.lat.toFixed(6);
+        presetLngInput.value = result.lng.toFixed(6);
+        presetSearchInput.value = result.name;
+    });
+});
+
 addPresetBtn.addEventListener('click', () => {
     const name = presetNameInput.value.trim();
     const lat = parseFloat(presetLatInput.value);
@@ -132,6 +237,7 @@ addPresetBtn.addEventListener('click', () => {
             presetNameInput.value = '';
             presetLatInput.value = '';
             presetLngInput.value = '';
+            presetSearchInput.value = '';
         });
     });
 });
@@ -151,93 +257,110 @@ function deletePreset(idx) {
 // ──────────────────────────────────────────────
 function initRouteMap() {
     routeMap = L.map('routeMap', { zoomControl: true }).setView([59.33, 18.07], 6);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OSM',
-        maxZoom: 19
+        attribution: '&copy; OSM', maxZoom: 19
     }).addTo(routeMap);
-
     routeLayerGroup = L.layerGroup().addTo(routeMap);
+}
+
+function wpBadgeColor(idx, total) {
+    if (idx === 0) return '#10b981';
+    if (idx === total - 1) return '#ef4444';
+    return '#3b82f6';
+}
+
+function wpBadgeLetter(idx, total) {
+    if (idx === 0) return 'A';
+    if (idx === total - 1) return String.fromCharCode(65 + Math.min(idx, 25));
+    return String.fromCharCode(65 + Math.min(idx, 25));
 }
 
 function updateRouteMap() {
     routeLayerGroup.clearLayers();
+    const validWps = waypoints.filter(w => w.lat !== null && w.lng !== null);
+    if (validWps.length === 0) return;
 
-    if (pointA) {
-        routeMarkerA = L.marker([pointA.lat, pointA.lng], {
+    validWps.forEach((wp, i) => {
+        const color = wpBadgeColor(i, validWps.length);
+        const letter = wpBadgeLetter(i, validWps.length);
+        L.marker([wp.lat, wp.lng], {
             icon: L.divIcon({
-                html: '<div style="background:#10b981;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid #fff;box-shadow:0 0 8px rgba(16,185,129,0.6)">A</div>',
-                iconSize: [24, 24],
-                className: ''
+                html: `<div style="background:${color};color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid #fff;box-shadow:0 0 8px ${color}80">${letter}</div>`,
+                iconSize: [24, 24], className: ''
             })
         }).addTo(routeLayerGroup);
-    }
+    });
 
-    if (pointB) {
-        routeMarkerB = L.marker([pointB.lat, pointB.lng], {
-            icon: L.divIcon({
-                html: '<div style="background:#ef4444;color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid #fff;box-shadow:0 0 8px rgba(239,68,68,0.6)">B</div>',
-                iconSize: [24, 24],
-                className: ''
-            })
-        }).addTo(routeLayerGroup);
-    }
-
-    if (pointA && pointB) {
-        const bounds = L.latLngBounds([pointA.lat, pointA.lng], [pointB.lat, pointB.lng]);
+    if (validWps.length >= 2) {
+        const bounds = L.latLngBounds(validWps.map(w => [w.lat, w.lng]));
         routeMap.fitBounds(bounds.pad(0.15));
-    } else if (pointA) {
-        routeMap.setView([pointA.lat, pointA.lng], 13);
-    } else if (pointB) {
-        routeMap.setView([pointB.lat, pointB.lng], 13);
+    } else {
+        routeMap.setView([validWps[0].lat, validWps[0].lng], 13);
     }
 }
 
 // ──────────────────────────────────────────────
-// GEOCODE SEARCH (for route inputs)
+// DYNAMIC WAYPOINTS
 // ──────────────────────────────────────────────
-async function geocodeAddress(query) {
-    if (!query || query.length < 2) return null;
+function renderWaypoints() {
+    routeWaypointsContainer.innerHTML = '';
 
-    try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=0`;
-        const res = await fetch(url, {
-            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.3' }
+    waypoints.forEach((wp, idx) => {
+        const letter = wpBadgeLetter(idx, waypoints.length);
+        const div = document.createElement('div');
+        div.className = 'route-field';
+        div.innerHTML = `
+            <span class="point-badge">${letter}</span>
+            <input type="text" id="${wp.inputId}" placeholder="🔍 Search location..." autocomplete="off" value="${escapeHtml(wp.name)}" />
+            <div class="ac-dropdown" id="ac_${wp.inputId}"></div>
+            ${waypoints.length > 2 ? `<button class="route-remove-btn" data-idx="${idx}">✕</button>` : ''}
+        `;
+        routeWaypointsContainer.appendChild(div);
+
+        const inputEl = div.querySelector(`#${wp.inputId}`);
+        const acEl = div.querySelector(`#ac_${wp.inputId}`);
+
+        // Setup autocomplete for this waypoint
+        setupAutocomplete(inputEl, acEl, (result) => {
+            waypoints[idx].lat = result.lat;
+            waypoints[idx].lng = result.lng;
+            waypoints[idx].name = result.name;
+            inputEl.value = result.name;
+            updateRouteMap();
+            updateRouteStatus();
         });
-        const data = await res.json();
-        if (!data || !data.length) return null;
-        return {
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
-            name: data[0].display_name.split(', ').slice(0, 2).join(', ')
-        };
-    } catch (err) {
-        console.error('[Settings] [Geocode] [ERROR]', err.message);
-        return null;
-    }
+
+        // Enter key fallback
+        inputEl.addEventListener('keydown', async (e) => {
+            if (e.key !== 'Enter') return;
+            const results = await nominatimSearch(inputEl.value.trim(), 1);
+            if (results.length > 0) {
+                waypoints[idx].lat = results[0].lat;
+                waypoints[idx].lng = results[0].lng;
+                waypoints[idx].name = results[0].name;
+                inputEl.value = results[0].name;
+                acEl.classList.remove('open');
+                updateRouteMap();
+                updateRouteStatus();
+            }
+        });
+
+        // Remove button
+        const removeBtn = div.querySelector('.route-remove-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                waypoints.splice(idx, 1);
+                renderWaypoints();
+                updateRouteMap();
+                updateRouteStatus();
+            });
+        }
+    });
 }
 
-// Debounced enter key handler for route inputs
-routeStartInput.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    const result = await geocodeAddress(routeStartInput.value.trim());
-    if (result) {
-        pointA = result;
-        routeStartInput.value = result.name;
-        updateRouteMap();
-        updateRouteStatus();
-    }
-});
-
-routeEndInput.addEventListener('keydown', async (e) => {
-    if (e.key !== 'Enter') return;
-    const result = await geocodeAddress(routeEndInput.value.trim());
-    if (result) {
-        pointB = result;
-        routeEndInput.value = result.name;
-        updateRouteMap();
-        updateRouteStatus();
-    }
+addWaypointBtn.addEventListener('click', () => {
+    waypoints.push({ lat: null, lng: null, name: '', inputId: 'wp_' + wpCounter++ });
+    renderWaypoints();
 });
 
 // ──────────────────────────────────────────────
@@ -248,25 +371,14 @@ modeBtns.forEach((btn) => {
         modeBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         routeMode = btn.dataset.mode;
-
-        if (routeMode === 'driving') {
-            speedSlider.value = 50;
-            speedValue.textContent = '50 km/h';
-            routeSpeedKmh = 50;
-        } else if (routeMode === 'walking') {
-            speedSlider.value = 5;
-            speedValue.textContent = '5 km/h';
-            routeSpeedKmh = 5;
-        }
-        // custom: keep current slider value
+        if (routeMode === 'driving') { speedSlider.value = 50; speedValue.textContent = '50 km/h'; routeSpeedKmh = 50; }
+        else if (routeMode === 'walking') { speedSlider.value = 5; speedValue.textContent = '5 km/h'; routeSpeedKmh = 5; }
     });
 });
 
 speedSlider.addEventListener('input', () => {
     routeSpeedKmh = parseInt(speedSlider.value, 10);
     speedValue.textContent = routeSpeedKmh + ' km/h';
-
-    // If user changes speed, switch to custom mode
     if (routeMode !== 'custom') {
         modeBtns.forEach(b => b.classList.remove('active'));
         document.getElementById('modeCustom').classList.add('active');
@@ -275,24 +387,30 @@ speedSlider.addEventListener('input', () => {
 });
 
 // ──────────────────────────────────────────────
-// ROUTE FETCHING (OSRM)
+// DIRECTION SELECTOR
 // ──────────────────────────────────────────────
-async function fetchRoute(start, end, mode) {
+dirBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+        dirBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        routeDirection = btn.dataset.dir;
+    });
+});
+
+// ──────────────────────────────────────────────
+// ROUTE FETCHING (OSRM) — Multi-waypoint
+// ──────────────────────────────────────────────
+async function fetchMultiRoute(wps, mode) {
     const osrmMode = (mode === 'walking') ? 'foot' : 'driving';
-    const url = `https://router.project-osrm.org/route/v1/${osrmMode}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+    const coords = wps.map(w => `${w.lng},${w.lat}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/${osrmMode}/${coords}?overview=full&geometries=geojson`;
 
     try {
         const res = await fetch(url);
         if (!res.ok) throw new Error('OSRM API returned ' + res.status);
         const data = await res.json();
-
-        if (!data.routes || !data.routes.length) {
-            throw new Error('No route found');
-        }
-
-        const coords = data.routes[0].geometry.coordinates;
-        // GeoJSON is [lng, lat] — convert to [lat, lng]
-        return coords.map(c => ({ lat: c[1], lng: c[0] }));
+        if (!data.routes || !data.routes.length) throw new Error('No route found');
+        return data.routes[0].geometry.coordinates.map(c => ({ lat: c[1], lng: c[0] }));
     } catch (err) {
         console.error('[Settings] [OSRM] [ERROR]', err.message);
         return null;
@@ -302,36 +420,47 @@ async function fetchRoute(start, end, mode) {
 // ──────────────────────────────────────────────
 // ROUTE SIMULATION ENGINE
 // ──────────────────────────────────────────────
+function getValidWaypoints() {
+    return waypoints.filter(w => w.lat !== null && w.lng !== null);
+}
+
 function updateRouteStatus() {
-    if (!pointA || !pointB) {
-        routeStatusText.textContent = 'Set both points A and B to begin';
+    const valid = getValidWaypoints();
+    if (valid.length < 2) {
+        routeStatusText.textContent = 'Add at least 2 waypoints to begin';
         routeStartBtn.disabled = true;
     } else {
-        routeStatusText.textContent = 'Ready — Press Start to simulate';
+        routeStatusText.textContent = `Ready — ${valid.length} points set. Press Start.`;
         routeStartBtn.disabled = false;
     }
 }
 
 routeStartBtn.addEventListener('click', async () => {
-    if (!pointA || !pointB) return;
+    const valid = getValidWaypoints();
+    if (valid.length < 2) return;
 
-    // If paused, resume
+    // Resume from pause
     if (routePaused && routePoints.length > 0) {
         routePaused = false;
         routeStartBtn.disabled = true;
         routePauseBtn.disabled = false;
         routeStopBtn.disabled = false;
         routeStatusText.textContent = 'Simulating...';
-        routeStatusText.classList.add('live');
         startSimulationLoop();
         return;
+    }
+
+    // Determine waypoint order based on direction
+    let orderedWps = [...valid];
+    if (routeDirection === 'backward') {
+        orderedWps.reverse();
     }
 
     // Fetch route
     routeStatusText.textContent = 'Fetching route from OSRM...';
     routeStartBtn.disabled = true;
 
-    const points = await fetchRoute(pointA, pointB, routeMode);
+    const points = await fetchMultiRoute(orderedWps, routeMode);
     if (!points || points.length < 2) {
         routeStatusText.textContent = '❌ Could not find a route. Try different locations.';
         routeStartBtn.disabled = false;
@@ -340,66 +469,72 @@ routeStartBtn.addEventListener('click', async () => {
 
     routePoints = points;
     routeIndex = 0;
+    routeGoingForward = true;
 
-    // Draw route on map
+    // Draw route
     if (routePolyline) routeLayerGroup.removeLayer(routePolyline);
     routePolyline = L.polyline(
         points.map(p => [p.lat, p.lng]),
         { color: '#f59e0b', weight: 4, opacity: 0.7 }
     ).addTo(routeLayerGroup);
 
-    // Add moving marker
+    // Moving marker
     if (routeMovingMarker) routeLayerGroup.removeLayer(routeMovingMarker);
     routeMovingMarker = L.circleMarker([points[0].lat, points[0].lng], {
-        radius: 7,
-        fillColor: '#3b82f6',
-        fillOpacity: 1,
-        color: '#fff',
-        weight: 2
+        radius: 7, fillColor: '#3b82f6', fillOpacity: 1, color: '#fff', weight: 2
     }).addTo(routeLayerGroup);
 
-    // Fit map to route
     routeMap.fitBounds(routePolyline.getBounds().pad(0.1));
 
-    // Update UI
     routePaused = false;
     routeStartBtn.disabled = true;
     routePauseBtn.disabled = false;
     routeStopBtn.disabled = false;
     routeStatusText.textContent = 'Simulating...';
 
-    // Set initial spoofed position
     updateSpoofedPosition(points[0]);
-
-    // Start loop
     startSimulationLoop();
 });
 
 function startSimulationLoop() {
-    // Calculate meters per second from km/h
     const metersPerSecond = (routeSpeedKmh * 1000) / 3600;
-
-    // We step every 1 second
     if (routeInterval) clearInterval(routeInterval);
 
     routeInterval = setInterval(() => {
-        if (routeIndex >= routePoints.length - 1) {
-            stopSimulation(true);
-            return;
+        if (routeDirection === 'loop') {
+            // Loop: bounce forward and backward
+            if (routeGoingForward) {
+                if (routeIndex >= routePoints.length - 1) {
+                    routeGoingForward = false;
+                }
+            } else {
+                if (routeIndex <= 0) {
+                    routeGoingForward = true;
+                }
+            }
+        } else {
+            // Forward or backward (already handled by point order)
+            if (routeIndex >= routePoints.length - 1) {
+                stopSimulation(true);
+                return;
+            }
         }
 
-        // Calculate distance to skip based on speed
-        let distToTravel = metersPerSecond; // meters per tick (1s)
-        while (distToTravel > 0 && routeIndex < routePoints.length - 1) {
+        let distToTravel = metersPerSecond;
+        const step = routeGoingForward ? 1 : -1;
+
+        while (distToTravel > 0) {
+            const nextIdx = routeIndex + step;
+            if (nextIdx < 0 || nextIdx >= routePoints.length) break;
+
             const current = routePoints[routeIndex];
-            const next = routePoints[routeIndex + 1];
+            const next = routePoints[nextIdx];
             const segDist = haversineMeters(current.lat, current.lng, next.lat, next.lng);
 
             if (segDist <= distToTravel) {
                 distToTravel -= segDist;
-                routeIndex++;
+                routeIndex = nextIdx;
             } else {
-                // Interpolate within this segment
                 const fraction = distToTravel / segDist;
                 const interpLat = current.lat + (next.lat - current.lat) * fraction;
                 const interpLng = current.lng + (next.lng - current.lng) * fraction;
@@ -411,16 +546,11 @@ function startSimulationLoop() {
         const pos = routePoints[routeIndex];
         updateSpoofedPosition(pos);
 
-        // Update moving marker
-        if (routeMovingMarker) {
-            routeMovingMarker.setLatLng([pos.lat, pos.lng]);
-        }
+        if (routeMovingMarker) routeMovingMarker.setLatLng([pos.lat, pos.lng]);
 
-        // Update progress
         const pct = Math.round((routeIndex / (routePoints.length - 1)) * 100);
         routeProgressBar.style.width = pct + '%';
         routeProgressPct.textContent = pct + '%';
-
     }, 1000);
 }
 
@@ -437,10 +567,7 @@ function updateSpoofedPosition(pos) {
 }
 
 routePauseBtn.addEventListener('click', () => {
-    if (routeInterval) {
-        clearInterval(routeInterval);
-        routeInterval = null;
-    }
+    if (routeInterval) { clearInterval(routeInterval); routeInterval = null; }
     routePaused = true;
     routeStartBtn.disabled = false;
     routePauseBtn.disabled = true;
@@ -448,20 +575,13 @@ routePauseBtn.addEventListener('click', () => {
     routeStatusText.textContent = 'Paused';
 });
 
-routeStopBtn.addEventListener('click', () => {
-    stopSimulation(false);
-});
+routeStopBtn.addEventListener('click', () => { stopSimulation(false); });
 
 function stopSimulation(completed) {
-    if (routeInterval) {
-        clearInterval(routeInterval);
-        routeInterval = null;
-    }
-
+    if (routeInterval) { clearInterval(routeInterval); routeInterval = null; }
     routePaused = false;
     routePoints = [];
     routeIndex = 0;
-
     routeStartBtn.disabled = false;
     routePauseBtn.disabled = true;
     routeStopBtn.disabled = true;
@@ -475,8 +595,6 @@ function stopSimulation(completed) {
         routeStatusText.textContent = 'Stopped';
         routeProgressBar.style.width = '0%';
         routeProgressPct.textContent = '0%';
-
-        // Remove route line and moving marker
         if (routePolyline) { routeLayerGroup.removeLayer(routePolyline); routePolyline = null; }
         if (routeMovingMarker) { routeLayerGroup.removeLayer(routeMovingMarker); routeMovingMarker = null; }
     }
@@ -509,6 +627,7 @@ document.getElementById('backToPopup').addEventListener('click', (e) => {
 // ──────────────────────────────────────────────
 loadDisplaySettings();
 loadCustomPresets();
+renderWaypoints();
 
 setTimeout(() => {
     initRouteMap();
