@@ -105,8 +105,17 @@ function runGeoTest(stored) {
             }
         },
         function (err) {
-            log('[GeoAPI] ERROR ' + err.code + ': ' + err.message, 'err');
-            setVal('t-lat', 'Error: ' + err.message, 'red');
+            if (err.code === 1) {
+                log('[GeoAPI] PERMISSION DENIED — Extension pages cannot access real GPS. This is expected.', 'warn');
+                setVal('t-lat', 'Permission denied (expected on extension page)', 'yellow');
+                setVal('t-lng', '—');
+                setVal('t-time', '—');
+                setVal('t-match', 'N/A — test from a real webpage instead', 'yellow');
+                setTest('x-override', true, 'Cannot test on extension page — use Google Maps test');
+            } else {
+                log('[GeoAPI] ERROR ' + err.code + ': ' + err.message, 'err');
+                setVal('t-lat', 'Error: ' + err.message, 'red');
+            }
         },
         { timeout: 8000, maximumAge: 0, enableHighAccuracy: false }
     );
@@ -119,8 +128,11 @@ function testGoogleMaps() {
 
 function resetSpoof() {
     chrome.storage.local.set({ spoofEnabled: false }, function () {
-        log('[Action] Spoof DISABLED via debug page', 'warn');
-        refresh();
+        // CRITICAL: Notify background.js to update the toolbar badge
+        chrome.runtime.sendMessage({ type: 'STATE_CHANGED', spoofEnabled: false }, function () {
+            log('[Action] Spoof DISABLED via debug page — badge updated', 'warn');
+            refresh();
+        });
     });
 }
 
