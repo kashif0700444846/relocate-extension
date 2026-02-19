@@ -336,7 +336,7 @@ chrome.storage.local.get(
             showCoords = true,
             showPresets = true,
             showRecent = true,
-            customPresets = [],
+            allPresets = [],
             routeActive = false
         } = data;
 
