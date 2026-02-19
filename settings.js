@@ -691,6 +691,14 @@ checkUpdateBtn.addEventListener('click', async () => {
 // ──────────────────────────────────────────────
 // NAVIGATION
 // ──────────────────────────────────────────────
+// NAVIGATION
+// ──────────────────────────────────────────────
+document.getElementById('navDebug').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('debug.html') });
+});
+document.getElementById('navExtensions').addEventListener('click', () => {
+    chrome.tabs.create({ url: 'chrome://extensions' });
+});
 document.getElementById('backToPopup').addEventListener('click', (e) => {
     e.preventDefault();
     window.close();

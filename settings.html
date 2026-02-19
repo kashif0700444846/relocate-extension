@@ -644,6 +644,44 @@
         .footer a:hover {
             text-decoration: underline
         }
+
+        /* Nav bar */
+        .nav-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            padding: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            flex-wrap: wrap
+        }
+
+        .nav-link {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+            cursor: pointer;
+            background: none;
+            white-space: nowrap
+        }
+
+        .nav-link:hover {
+            border-color: var(--border);
+            color: var(--text);
+            background: var(--accent-dim)
+        }
+
+        .nav-link.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent)
+        }
     </style>
 </head>
 
@@ -655,6 +693,13 @@
             <h1>Relocate Settings</h1>
             <p>Customize your experience</p>
         </div>
+    </div>
+
+    <!-- Nav Bar -->
+    <div class="nav-bar">
+        <a class="nav-link active">⚙️ Settings</a>
+        <a class="nav-link" id="navDebug">🧪 Debug Console</a>
+        <a class="nav-link" id="navExtensions">🧩 Chrome Extensions</a>
     </div>
 
     <!-- Section 1: Display Preferences -->

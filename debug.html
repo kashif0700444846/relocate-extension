@@ -284,6 +284,44 @@
             color: var(--accent);
             text-decoration: none;
         }
+
+        /* Nav bar */
+        .nav-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            padding: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            flex-wrap: wrap
+        }
+
+        .nav-link {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: all 0.15s;
+            cursor: pointer;
+            background: none;
+            white-space: nowrap
+        }
+
+        .nav-link:hover {
+            border-color: var(--border);
+            color: var(--text);
+            background: rgba(245, 158, 11, 0.08)
+        }
+
+        .nav-link.active {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: var(--accent);
+            color: var(--accent)
+        }
     </style>
 </head>
 
@@ -296,6 +334,13 @@
             <p>Real-time extension status &amp; GPS spoof verification</p>
         </div>
         <span id="globalBadge" class="badge badge-off">SPOOF OFF</span>
+    </div>
+
+    <!-- Nav Bar -->
+    <div class="nav-bar">
+        <a class="nav-link" id="navSettings">⚙️ Settings</a>
+        <a class="nav-link active">🧪 Debug Console</a>
+        <a class="nav-link" id="navExtensions">🧩 Chrome Extensions</a>
     </div>
 
     <div class="actions">

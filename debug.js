@@ -140,6 +140,14 @@ document.getElementById('btnRefresh').addEventListener('click', refresh);
 document.getElementById('btnMaps').addEventListener('click', testGoogleMaps);
 document.getElementById('btnReset').addEventListener('click', resetSpoof);
 
+// Nav bar
+document.getElementById('navSettings').addEventListener('click', function () {
+    chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+});
+document.getElementById('navExtensions').addEventListener('click', function () {
+    chrome.tabs.create({ url: 'chrome://extensions' });
+});
+
 log('[Debug] Relocate Debug Console loaded. Running self-tests...', 'info');
 refresh();
 
