@@ -83,6 +83,13 @@ Then load unpacked from `chrome://extensions`.
 
 ## 📝 Changelog
 
+### v1.3.0
+- ⚙️ **Settings Page** — full-page settings with display toggles, custom presets, and route simulation
+- 📌 **Custom Presets** — create your own saved locations (add/delete from settings)
+- 🎛️ **Display Toggles** — show/hide coords, presets, or recent locations in popup
+- 🛣️ **Route Simulation** — set Point A → B, choose driving/walking/custom speed, follows real roads via OSRM
+- ▶️ **Play/Pause/Stop** controls with live progress bar and moving map marker
+
 ### v1.2.2
 - 🏠 **Recent Locations show addresses** — reverse geocode via Nominatim for map-clicked locations, search input name for searched locations
 - 🔄 **Debug page live refresh** — auto-updates when state changes from popup (no manual refresh needed)

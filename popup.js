@@ -37,6 +37,11 @@ const recentSection = document.getElementById('recentSection');
 const recentList = document.getElementById('recentList');
 const clearRecentBtn = document.getElementById('clearRecentBtn');
 
+// Section refs for display toggles
+const coordsSection = document.getElementById('coordsSection');
+const presetsSection = document.getElementById('presetsSection');
+const customPresetsContainer = document.getElementById('customPresetsGrid');
+
 // ──────────────────────────────────────────────
 // Theme (dark / light)
 // ──────────────────────────────────────────────
@@ -314,7 +319,8 @@ searchBtn.addEventListener('click', () => {
 // ──────────────────────────────────────────────
 chrome.storage.local.get(
     ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme',
-        'useCount', 'ratingDismissed', 'updateAvailable', 'recentLocations'],
+        'useCount', 'ratingDismissed', 'updateAvailable', 'recentLocations',
+        'showCoords', 'showPresets', 'showRecent', 'customPresets', 'routeActive'],
     (data) => {
         const {
             spoofEnabled = false,
@@ -326,7 +332,12 @@ chrome.storage.local.get(
             useCount = 0,
             ratingDismissed = false,
             updateAvailable = null,
-            recentLocations = []
+            recentLocations = [],
+            showCoords = true,
+            showPresets = true,
+            showRecent = true,
+            customPresets = [],
+            routeActive = false
         } = data;
 
         applyTheme(theme);
@@ -337,6 +348,12 @@ chrome.storage.local.get(
         updateStatusUI(spoofEnabled, presetName);
 
         setTimeout(() => initMap(latitude, longitude), 100);
+
+        // ── Display Settings ──
+        applyDisplaySettings(showCoords, showPresets, showRecent);
+
+        // ── Custom Presets ──
+        renderCustomPresetsInPopup(customPresets);
 
         // ── Update Banner Logic ──
         showUpdateBanner(updateAvailable);
@@ -591,6 +608,11 @@ resetBtn.addEventListener('click', () => {
     });
 });
 
+document.getElementById('settingsLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+});
+
 document.getElementById('debugLink').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: chrome.runtime.getURL('debug.html') });
@@ -599,4 +621,54 @@ document.getElementById('debugLink').addEventListener('click', (e) => {
 document.getElementById('mapsTestLink').addEventListener('click', (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: 'https://www.google.com/maps' });
+});
+
+// ──────────────────────────────────────────────
+// DISPLAY SETTINGS
+// ──────────────────────────────────────────────
+function applyDisplaySettings(showCoords, showPresets, showRecent) {
+    if (coordsSection) coordsSection.style.display = showCoords !== false ? '' : 'none';
+    if (presetsSection) presetsSection.style.display = showPresets !== false ? '' : 'none';
+    if (recentSection && showRecent === false) recentSection.style.display = 'none';
+}
+
+function renderCustomPresetsInPopup(presets) {
+    if (!customPresetsContainer || !Array.isArray(presets) || presets.length === 0) return;
+    customPresetsContainer.innerHTML = '';
+    presets.forEach((p) => {
+        const btn = document.createElement('button');
+        btn.className = 'preset-btn';
+        btn.dataset.lat = p.lat;
+        btn.dataset.lng = p.lng;
+        btn.dataset.name = p.name;
+        btn.textContent = p.name;
+        btn.addEventListener('click', () => {
+            setCoords(p.lat, p.lng);
+            if (map && marker) {
+                map.setView([p.lat, p.lng], 13);
+                marker.setLatLng([p.lat, p.lng]);
+            }
+            clearPresets();
+            btn.classList.add('active');
+            showToast('📍 Moved to ' + p.name);
+        });
+        customPresetsContainer.appendChild(btn);
+    });
+}
+
+// ──────────────────────────────────────────────
+// REACTIVE SETTINGS SYNC (from Settings page)
+// ──────────────────────────────────────────────
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.showCoords || changes.showPresets || changes.showRecent) {
+        applyDisplaySettings(
+            changes.showCoords ? changes.showCoords.newValue : undefined,
+            changes.showPresets ? changes.showPresets.newValue : undefined,
+            changes.showRecent ? changes.showRecent.newValue : undefined
+        );
+    }
+    if (changes.customPresets) {
+        renderCustomPresetsInPopup(changes.customPresets.newValue || []);
+    }
 });
