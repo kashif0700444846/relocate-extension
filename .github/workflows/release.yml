@@ -32,8 +32,11 @@ jobs:
             popup.html \
             popup.css \
             popup.js \
+            settings.html \
+            settings.js \
             debug.html \
             debug.js \
+            privacy-policy.html \
             icons/ \
             lib/ \
             README.md \
