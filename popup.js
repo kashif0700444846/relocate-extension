@@ -353,6 +353,17 @@ chrome.storage.local.get(
         applyDisplaySettings(showCoords, showPresets, showRecent);
 
         // ── All Presets (default + custom) ──
+        // Auto-seed defaults if allPresets is empty (handles existing installs)
+        if (!allPresets || allPresets.length === 0) {
+            const defaultPresets = [
+                { name: 'New York \ud83d\uddfd', lat: 40.7128, lng: -74.0060 },
+                { name: 'London \ud83c\udfa1', lat: 51.5074, lng: -0.1278 },
+                { name: 'Tokyo \ud83d\uddfc', lat: 35.6762, lng: 139.6503 },
+                { name: 'Paris \ud83d\uddfc', lat: 48.8566, lng: 2.3522 }
+            ];
+            chrome.storage.local.set({ allPresets: defaultPresets });
+            allPresets = defaultPresets;
+        }
         renderAllPresetsInPopup(allPresets);
 
         // ── Update Banner Logic ──

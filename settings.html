@@ -711,8 +711,13 @@
         <div class="add-preset-area">
             <h3>➕ Add New Preset</h3>
 
-            <!-- Mini map — click to pick location -->
-            <div class="preset-map-container">
+            <!-- Toggle button for map -->
+            <button type="button" id="togglePresetMap"
+                style="width:100%;padding:8px 14px;border-radius:8px;border:1px dashed var(--border);background:var(--card);color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:10px;transition:all 0.15s">🗺️
+                Pick from Map (click to expand)</button>
+
+            <!-- Mini map — hidden by default -->
+            <div class="preset-map-container" id="presetMapWrap" style="display:none">
                 <div id="presetMap"></div>
                 <div class="map-hint">📍 Click on map to pick a location</div>
             </div>

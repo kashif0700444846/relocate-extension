@@ -656,6 +656,32 @@ document.getElementById('backToPopup').addEventListener('click', (e) => {
 });
 
 // ──────────────────────────────────────────────
+// PRESET MAP TOGGLE (lazy init)
+// ──────────────────────────────────────────────
+const togglePresetMapBtn = document.getElementById('togglePresetMap');
+const presetMapWrap = document.getElementById('presetMapWrap');
+let presetMapInitialized = false;
+
+togglePresetMapBtn.addEventListener('click', () => {
+    const isHidden = presetMapWrap.style.display === 'none';
+    presetMapWrap.style.display = isHidden ? '' : 'none';
+    togglePresetMapBtn.textContent = isHidden
+        ? '🗺️ Hide Map (click to collapse)'
+        : '🗺️ Pick from Map (click to expand)';
+
+    // Lazy init: only create the map on first open
+    if (isHidden && !presetMapInitialized) {
+        presetMapInitialized = true;
+        setTimeout(() => {
+            initPresetMap();
+        }, 50);
+    } else if (isHidden && presetMap) {
+        // Fix Leaflet tile rendering after re-show
+        setTimeout(() => presetMap.invalidateSize(), 50);
+    }
+});
+
+// ──────────────────────────────────────────────
 // INIT
 // ──────────────────────────────────────────────
 loadDisplaySettings();
@@ -663,6 +689,5 @@ loadAllPresets();
 renderWaypoints();
 
 setTimeout(() => {
-    initPresetMap();
     initRouteMap();
 }, 100);
