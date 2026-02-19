@@ -431,7 +431,14 @@ function renderRecentLocations(locations) {
         return;
     }
 
-    recentSection.style.display = 'block';
+    // Respect the showRecent toggle
+    chrome.storage.local.get(['showRecent'], (settings) => {
+        if (settings.showRecent === false) {
+            recentSection.style.display = 'none';
+            return;
+        }
+        recentSection.style.display = 'block';
+    });
     recentList.innerHTML = '';
 
     locations.forEach((loc, idx) => {
@@ -629,7 +636,7 @@ document.getElementById('mapsTestLink').addEventListener('click', (e) => {
 function applyDisplaySettings(showCoords, showPresets, showRecent) {
     if (coordsSection) coordsSection.style.display = showCoords !== false ? '' : 'none';
     if (presetsSection) presetsSection.style.display = showPresets !== false ? '' : 'none';
-    if (recentSection && showRecent === false) recentSection.style.display = 'none';
+    if (recentSection) recentSection.style.display = showRecent !== false ? '' : 'none';
 }
 
 function renderAllPresetsInPopup(presets) {

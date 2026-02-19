@@ -29,9 +29,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         { name: 'New York 🗽', lat: 40.7128, lng: -74.0060 },
         { name: 'London 🎡', lat: 51.5074, lng: -0.1278 },
         { name: 'Tokyo 🗼', lat: 35.6762, lng: 139.6503 },
-        { name: 'Paris 🗼', lat: 48.8566, lng: 2.3522 },
-        { name: 'Dubai 🏙️', lat: 25.2048, lng: 55.2708 },
-        { name: 'Sydney 🦘', lat: -33.8688, lng: 151.2093 }
+        { name: 'Paris 🗼', lat: 48.8566, lng: 2.3522 }
       ];
     }
 
