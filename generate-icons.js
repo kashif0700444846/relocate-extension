@@ -1,6 +1,6 @@
-// [LocationMagic] [generate-icons.js] - Generates extension icons using canvas
+// [Relocate] [generate-icons.js] - Generates extension icons using canvas
 // Run: node generate-icons.js
-// Creates icons/icon16.png, icons/icon48.png, icons/icon128.png
+// Creates icons/icon-16.png, icons/icon-48.png, icons/icon-128.png
 
 const { createCanvas } = require('canvas');
 const fs = require('fs');
@@ -16,9 +16,9 @@ function drawIcon(size) {
     const cy = size / 2;
     const r = size / 2;
 
-    // Background: deep dark circle
+    // Background: dark navy rounded feel
     const bgGrad = ctx.createRadialGradient(cx, cy * 0.7, r * 0.1, cx, cy, r);
-    bgGrad.addColorStop(0, '#1a0a3a');
+    bgGrad.addColorStop(0, '#1a1a2e');
     bgGrad.addColorStop(1, '#0d0d1a');
     ctx.fillStyle = bgGrad;
     ctx.beginPath();
@@ -32,15 +32,15 @@ function drawIcon(size) {
     const pinY = cy * 0.55;
     const pinRadius = pinW / 2;
 
-    // Glow effect
-    ctx.shadowColor = '#a855f7';
+    // Glow effect — yellow/amber
+    ctx.shadowColor = '#f59e0b';
     ctx.shadowBlur = size * 0.25;
 
-    // Pin gradient fill
+    // Pin gradient fill — yellow → orange
     const pinGrad = ctx.createLinearGradient(pinX - pinRadius, pinY - pinRadius, pinX + pinRadius, pinY + pinH);
-    pinGrad.addColorStop(0, '#c084fc');
-    pinGrad.addColorStop(0.5, '#8b5cf6');
-    pinGrad.addColorStop(1, '#e879f9');
+    pinGrad.addColorStop(0, '#fbbf24');
+    pinGrad.addColorStop(0.5, '#f59e0b');
+    pinGrad.addColorStop(1, '#fb923c');
     ctx.fillStyle = pinGrad;
 
     // Draw teardrop
@@ -58,16 +58,16 @@ function drawIcon(size) {
     ctx.arc(pinX, pinY, pinRadius * 0.38, 0, Math.PI * 2);
     ctx.fill();
 
-    // Inner dot
-    ctx.fillStyle = '#8b5cf6';
+    // Inner dot — amber
+    ctx.fillStyle = '#d97706';
     ctx.beginPath();
     ctx.arc(pinX, pinY, pinRadius * 0.16, 0, Math.PI * 2);
     ctx.fill();
 
-    // Magic sparkles (small stars around)
+    // Accent sparkles (warm tones)
     if (size >= 48) {
-        ctx.fillStyle = '#f0abfc';
-        ctx.shadowColor = '#e879f9';
+        ctx.fillStyle = '#fcd34d';
+        ctx.shadowColor = '#fbbf24';
         ctx.shadowBlur = size * 0.1;
 
         const sparks = [
@@ -88,9 +88,9 @@ function drawIcon(size) {
 
 [16, 48, 128].forEach(size => {
     const buffer = drawIcon(size);
-    const outPath = path.join(iconsDir, `icon${size}.png`);
+    const outPath = path.join(iconsDir, `icon-${size}.png`);
     fs.writeFileSync(outPath, buffer);
-    console.log(`[LocationMagic] Generated icon${size}.png`);
+    console.log(`[Relocate] Generated icon-${size}.png`);
 });
 
-console.log('[LocationMagic] All icons generated successfully!');
+console.log('[Relocate] All icons generated successfully!');
