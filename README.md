@@ -83,6 +83,14 @@ Then load unpacked from `chrome://extensions`.
 
 ## 📝 Changelog
 
+### v1.2.2
+- 🏠 **Recent Locations show addresses** — reverse geocode via Nominatim for map-clicked locations, search input name for searched locations
+- 🔄 **Debug page live refresh** — auto-updates when state changes from popup (no manual refresh needed)
+
+### v1.2.1
+- 🐛 **Debug page badge sync** — disabling spoof from debug page now updates toolbar badge instantly
+- 🐛 **Geolocation permission warning** — handled gracefully on extension pages
+
 ### v1.2.0
 - 🕐 **Recent Locations** — auto-saves last 8 locations for quick access
 - 🔔 **Update notifications** — checks GitHub Releases every 6h
