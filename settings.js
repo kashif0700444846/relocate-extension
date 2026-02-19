@@ -648,6 +648,47 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 }
 
 // ──────────────────────────────────────────────
+// CHECK FOR UPDATES
+// ──────────────────────────────────────────────
+const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+const updateResult = document.getElementById('updateResult');
+const GITHUB_REPO = 'kashif0700444846/relocate-extension';
+
+checkUpdateBtn.addEventListener('click', async () => {
+    checkUpdateBtn.disabled = true;
+    checkUpdateBtn.textContent = '⏳ Checking...';
+    updateResult.textContent = '';
+
+    try {
+        const currentVersion = chrome.runtime.getManifest().version;
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+            headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+
+        if (!res.ok) throw new Error('GitHub API error: ' + res.status);
+        const release = await res.json();
+
+        // Extract version from tag (e.g. "v1.5.5-42" → "1.5.5")
+        const latestTag = release.tag_name || '';
+        const latestVersion = latestTag.replace(/^v/, '').split('-')[0];
+
+        if (latestVersion === currentVersion) {
+            updateResult.innerHTML = '✅ <strong style="color:#10b981">You are on the latest version!</strong> (v' + currentVersion + ')';
+        } else {
+            const downloadUrl = release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`;
+            updateResult.innerHTML = '🆕 <strong style="color:#f59e0b">Update available!</strong> v' + latestVersion +
+                ' (you have v' + currentVersion + ') — <a href="' + downloadUrl + '" target="_blank" style="color:#3b82f6">Download</a>';
+        }
+    } catch (err) {
+        console.error('[Settings] [UpdateCheck] [ERROR]', err.message);
+        updateResult.innerHTML = '❌ <span style="color:#ef4444">Could not check for updates.</span> Check your connection.';
+    }
+
+    checkUpdateBtn.disabled = false;
+    checkUpdateBtn.textContent = '🔄 Check for Updates';
+});
+
+// ──────────────────────────────────────────────
 // NAVIGATION
 // ──────────────────────────────────────────────
 document.getElementById('backToPopup').addEventListener('click', (e) => {
