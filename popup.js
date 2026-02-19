@@ -32,6 +32,11 @@ const ratingBanner = document.getElementById('ratingBanner');
 const ratingStarBtn = document.getElementById('ratingStarBtn');
 const ratingDismissBtn = document.getElementById('ratingDismissBtn');
 
+// Recent Locations DOM refs
+const recentSection = document.getElementById('recentSection');
+const recentList = document.getElementById('recentList');
+const clearRecentBtn = document.getElementById('clearRecentBtn');
+
 // ──────────────────────────────────────────────
 // Theme (dark / light)
 // ──────────────────────────────────────────────
@@ -288,7 +293,7 @@ searchBtn.addEventListener('click', () => {
 // ──────────────────────────────────────────────
 chrome.storage.local.get(
     ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme',
-        'useCount', 'ratingDismissed', 'updateAvailable'],
+        'useCount', 'ratingDismissed', 'updateAvailable', 'recentLocations'],
     (data) => {
         const {
             spoofEnabled = false,
@@ -299,7 +304,8 @@ chrome.storage.local.get(
             theme = 'dark',
             useCount = 0,
             ratingDismissed = false,
-            updateAvailable = null
+            updateAvailable = null,
+            recentLocations = []
         } = data;
 
         applyTheme(theme);
@@ -322,6 +328,9 @@ chrome.storage.local.get(
         if (newCount >= 5 && !ratingDismissed) {
             showRatingBanner();
         }
+
+        // ── Recent Locations ──
+        renderRecentLocations(recentLocations);
     }
 );
 
@@ -369,6 +378,102 @@ ratingStarBtn.addEventListener('click', () => {
     // User clicked star — dismiss permanently
     chrome.storage.local.set({ ratingDismissed: true });
     ratingBanner.style.display = 'none';
+});
+
+// ──────────────────────────────────────────────
+// RECENT LOCATIONS
+// ──────────────────────────────────────────────
+const MAX_RECENT = 8;
+
+function renderRecentLocations(locations) {
+    if (!recentList || !recentSection) return;
+
+    if (!Array.isArray(locations) || locations.length === 0) {
+        recentSection.style.display = 'none';
+        return;
+    }
+
+    recentSection.style.display = 'block';
+    recentList.innerHTML = '';
+
+    locations.forEach((loc, idx) => {
+        const el = document.createElement('div');
+        el.className = 'recent-item';
+        el.innerHTML = `
+          <span class="recent-icon">📍</span>
+          <div class="recent-info">
+            <div class="recent-name">${loc.name || 'Unknown'}</div>
+            <div class="recent-coords">${parseFloat(loc.lat).toFixed(4)}, ${parseFloat(loc.lng).toFixed(4)}</div>
+          </div>
+          <button class="recent-remove" title="Remove" data-idx="${idx}">✕</button>`;
+
+        // Click item → set location
+        el.addEventListener('click', (e) => {
+            if (e.target.closest('.recent-remove')) return; // don't trigger on remove btn
+            setCoords(loc.lat, loc.lng);
+            if (map && marker) {
+                map.setView([loc.lat, loc.lng], 13);
+                marker.setLatLng([loc.lat, loc.lng]);
+            }
+            clearPresets();
+            showToast('📍 ' + (loc.name || 'Recent location'));
+        });
+
+        // Remove button
+        el.querySelector('.recent-remove').addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeRecentLocation(idx);
+        });
+
+        recentList.appendChild(el);
+    });
+}
+
+function addToRecentLocations(entry) {
+    chrome.storage.local.get(['recentLocations'], (data) => {
+        let locations = Array.isArray(data.recentLocations) ? data.recentLocations : [];
+
+        // Deduplicate: remove existing entry with same lat/lng (rounded to 4 decimals)
+        const newKey = parseFloat(entry.lat).toFixed(4) + ',' + parseFloat(entry.lng).toFixed(4);
+        locations = locations.filter((loc) => {
+            const key = parseFloat(loc.lat).toFixed(4) + ',' + parseFloat(loc.lng).toFixed(4);
+            return key !== newKey;
+        });
+
+        // Add to front
+        locations.unshift({
+            lat: entry.lat,
+            lng: entry.lng,
+            name: entry.name || (entry.lat.toFixed(4) + ', ' + entry.lng.toFixed(4)),
+            ts: Date.now()
+        });
+
+        // Cap at MAX_RECENT
+        if (locations.length > MAX_RECENT) {
+            locations = locations.slice(0, MAX_RECENT);
+        }
+
+        chrome.storage.local.set({ recentLocations: locations }, () => {
+            renderRecentLocations(locations);
+        });
+    });
+}
+
+function removeRecentLocation(idx) {
+    chrome.storage.local.get(['recentLocations'], (data) => {
+        let locations = Array.isArray(data.recentLocations) ? data.recentLocations : [];
+        locations.splice(idx, 1);
+        chrome.storage.local.set({ recentLocations: locations }, () => {
+            renderRecentLocations(locations);
+        });
+    });
+}
+
+clearRecentBtn.addEventListener('click', () => {
+    chrome.storage.local.set({ recentLocations: [] }, () => {
+        renderRecentLocations([]);
+        showToast('🗑️ Recent locations cleared');
+    });
 });
 
 // ──────────────────────────────────────────────
@@ -439,6 +544,9 @@ applyBtn.addEventListener('click', () => {
         updateStatusUI(true, presetName);
         notifyTabs(newState);
         showToast('📍 Location set to ' + presetName);
+
+        // Save to recent locations
+        addToRecentLocations({ lat, lng, name: presetName });
     });
 });
 

@@ -1,56 +1,112 @@
 # Relocate — Location Changer 📍
 
-**Spoof your GPS location on any website.** Change your geolocation to anywhere in the world with a single click. Privacy-first, developer-friendly Chrome Extension.
+> **Spoof your GPS location on any website with a single click.**
 
-## ✨ Features
-
-- 🌍 **GPS Location Spoofing** — Override `navigator.geolocation` on any website
-- 🔍 **Live Address Search** — Type an address and get instant suggestions (powered by OpenStreetMap)
-- 🗺️ **Interactive Map** — Click anywhere on the map to set your location
-- 📍 **Quick Presets** — One-click locations: New York, London, Tokyo, Paris, Dubai, Sydney
-- 🌙 **Dark / Light Mode** — Premium UI with automatic theme persistence
-- 🟡 **Toolbar Badge** — Visible indicator when spoofing is active
-- 🧪 **Debug Console** — Real-time status and self-tests for developers
-- 🔒 **Privacy First** — No data collection, no external servers, 100% local
-
-## 🚀 Installation
-
-1. Download the [latest release](https://github.com/kashif0700444846/relocate-extension/releases/latest)
-2. Unzip the file
-3. Go to `chrome://extensions`
-4. Enable **Developer Mode** (toggle in top right)
-5. Click **Load unpacked** → select the unzipped folder
-6. Click the **Relocate** icon in your toolbar
-
-## 🧪 Testing
-
-1. Open the extension popup
-2. Select a preset (e.g. **Tokyo 🗼**)
-3. Click **✅ Apply Location**
-4. Open [Google Maps](https://maps.google.com) → click the My Location button
-5. Google Maps shows your spoofed location!
-
-## 📋 Permissions
-
-| Permission | Reason |
-|-----------|--------|
-| `storage` | Save your location settings |
-| `scripting` | Inject the GPS override into web pages |
-| `activeTab` | Access the current tab for script injection |
-| `tabs` | Open debug page and Google Maps test |
-| `host_permissions: *://*/*` | Required to spoof location on all websites |
-
-## 🛠️ Tech Stack
-
-- **Manifest V3** — Latest Chrome Extension standard
-- **Leaflet.js** — Interactive maps (bundled locally, no CDN)
-- **Nominatim** — Free geocoding for address search
-- **Pure CSS** — No frameworks, custom dark/light theme
-
-## 📄 License
-
-MIT License — free to use, modify, and distribute.
+A privacy-first Chrome extension that overrides `navigator.geolocation` to return coordinates you choose. Perfect for developers, testers, and privacy-conscious users.
 
 ---
 
-**Keywords:** GPS spoofer, location changer, geolocation override, Chrome extension, fake GPS, location privacy, developer tools, navigator.geolocation
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🗺️ **Interactive Map** | Click anywhere on the Leaflet map to set your location |
+| 🔍 **Live Address Search** | Autocomplete powered by OpenStreetMap Nominatim |
+| 🕐 **Recent Locations** | Automatically saves your last 8 locations for quick re-selection |
+| 🌆 **Quick Presets** | One-click: New York, London, Tokyo, Paris, Dubai, Sydney |
+| 🎯 **Accuracy Control** | Adjustable accuracy slider (1m – 100m) |
+| 🌙 **Dark & Light Mode** | Theme toggle with persistent preference |
+| 🔔 **Update Notifications** | Auto-checks GitHub for new versions every 6 hours |
+| ⭐ **Rating Prompt** | Friendly reminder to star the repo after 5+ uses |
+| 🟡 **Toolbar Badge** | Yellow `●` badge when spoofing is active |
+| 🛡️ **Privacy-First** | Zero data collection — everything stays local |
+
+---
+
+## 📥 Installation
+
+### From GitHub Releases (Recommended)
+1. Go to [**Releases**](https://github.com/kashif0700444846/relocate-extension/releases/latest)
+2. Download `relocate-v*.zip`
+3. Unzip the file
+4. Open `chrome://extensions`
+5. Enable **Developer Mode** (top right)
+6. Click **Load unpacked** → select the unzipped folder
+
+### From Source
+```bash
+git clone https://github.com/kashif0700444846/relocate-extension.git
+```
+Then load unpacked from `chrome://extensions`.
+
+---
+
+## 🧪 Testing
+
+1. Click the Relocate icon in your toolbar
+2. Choose a location (map click, search, preset, or recent)
+3. Click **✅ Apply Location**
+4. Open [Google Maps](https://www.google.com/maps) — it should show your spoofed location
+5. Check the yellow `●` badge on the toolbar icon = spoofing active
+
+---
+
+## 🔐 Permissions
+
+| Permission | Why |
+|------------|-----|
+| `storage` | Save your preferences locally |
+| `scripting` | Inject geolocation override into web pages |
+| `activeTab` / `tabs` | Communicate state changes to open tabs |
+| `alarms` | Schedule periodic update checks |
+| `host_permissions` | Override geolocation on all websites |
+
+**No data is ever collected or transmitted.** See [Privacy Policy](privacy-policy.html).
+
+---
+
+## 🏗️ Tech Stack
+
+- **Manifest V3** — Modern Chrome extension architecture
+- **Leaflet.js** — Interactive map (bundled locally, no CDN)
+- **Nominatim API** — Address search (OpenStreetMap)
+- **GitHub Actions** — Auto-release ZIP on every push
+
+---
+
+## 🔄 Auto-Updates
+
+- **Chrome Web Store users:** Updates are fully automatic and silent
+- **Sideloaded users:** The extension checks GitHub Releases every 6 hours. When a new version is found, a blue banner appears in the popup with a download link
+
+---
+
+## 📝 Changelog
+
+### v1.2.0
+- 🕐 **Recent Locations** — auto-saves last 8 locations for quick access
+- 🔔 **Update notifications** — checks GitHub Releases every 6h
+- ⭐ **Rating prompt** — after 5+ uses
+- 📋 **Privacy Policy** — for Chrome Web Store compliance
+
+### v1.1.0
+- 🔍 Live address autocomplete (Nominatim)
+- 🌙 Dark/Light mode toggle
+- 🟡 Toolbar badge when spoofing active
+- 🗺️ Interactive Leaflet map with drag
+
+### v1.0.0
+- Initial release
+- GPS spoofing via `navigator.geolocation` override
+- Quick city presets
+- Accuracy control
+
+---
+
+## 📄 License
+
+MIT — Free to use, modify, and distribute.
+
+---
+
+**Keywords:** GPS spoofer, location changer, geolocation override, Chrome extension, fake GPS, location privacy, developer tools, navigator.geolocation, Relocate
