@@ -676,6 +676,16 @@ function renderAllPresetsInPopup(presets) {
         });
         allPresetsContainer.appendChild(btn);
     });
+
+    // "Add More" button at the end
+    const addMoreBtn = document.createElement('button');
+    addMoreBtn.className = 'preset-btn';
+    addMoreBtn.style.cssText = 'border-style:dashed;color:#64748b;font-size:11px';
+    addMoreBtn.textContent = '➕ Add More';
+    addMoreBtn.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('settings.html') });
+    });
+    allPresetsContainer.appendChild(addMoreBtn);
 }
 
 // ──────────────────────────────────────────────
