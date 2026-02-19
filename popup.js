@@ -1,5 +1,6 @@
 // [Relocate] [popup.js] - Popup Logic
-// Features: Leaflet map, live autocomplete search, theme toggle, badge sync.
+// Features: Leaflet map, live autocomplete search, theme toggle, badge sync,
+//           update notifications, and rating prompt banner.
 
 'use strict';
 
@@ -21,6 +22,15 @@ const resetBtn = document.getElementById('resetBtn');
 const presetBtns = document.querySelectorAll('.preset-btn');
 const themeBtn = document.getElementById('themeBtn');
 const autocompleteList = document.getElementById('autocompleteList');
+
+// Banner DOM refs
+const updateBanner = document.getElementById('updateBanner');
+const updateVersionText = document.getElementById('updateVersionText');
+const updateDownloadBtn = document.getElementById('updateDownloadBtn');
+const updateDismissBtn = document.getElementById('updateDismissBtn');
+const ratingBanner = document.getElementById('ratingBanner');
+const ratingStarBtn = document.getElementById('ratingStarBtn');
+const ratingDismissBtn = document.getElementById('ratingDismissBtn');
 
 // ──────────────────────────────────────────────
 // Theme (dark / light)
@@ -277,7 +287,8 @@ searchBtn.addEventListener('click', () => {
 // Load State & Initialize
 // ──────────────────────────────────────────────
 chrome.storage.local.get(
-    ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme'],
+    ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme',
+        'useCount', 'ratingDismissed', 'updateAvailable'],
     (data) => {
         const {
             spoofEnabled = false,
@@ -285,7 +296,10 @@ chrome.storage.local.get(
             longitude = 2.3522,
             accuracy = 10,
             presetName = '',
-            theme = 'dark'
+            theme = 'dark',
+            useCount = 0,
+            ratingDismissed = false,
+            updateAvailable = null
         } = data;
 
         applyTheme(theme);
@@ -296,8 +310,66 @@ chrome.storage.local.get(
         updateStatusUI(spoofEnabled, presetName);
 
         setTimeout(() => initMap(latitude, longitude), 100);
+
+        // ── Update Banner Logic ──
+        showUpdateBanner(updateAvailable);
+
+        // ── Rating Banner Logic ──
+        const newCount = useCount + 1;
+        chrome.storage.local.set({ useCount: newCount });
+
+        // Show rating banner after 5+ uses, if not dismissed
+        if (newCount >= 5 && !ratingDismissed) {
+            showRatingBanner();
+        }
     }
 );
+
+// ──────────────────────────────────────────────
+// UPDATE BANNER
+// ──────────────────────────────────────────────
+function showUpdateBanner(updateInfo) {
+    if (!updateInfo || !updateInfo.version) {
+        if (updateBanner) updateBanner.style.display = 'none';
+        return;
+    }
+
+    updateVersionText.textContent = updateInfo.name || ('v' + updateInfo.version);
+
+    if (updateInfo.downloadUrl) {
+        updateDownloadBtn.href = updateInfo.downloadUrl;
+        updateDownloadBtn.textContent = '⬇️ Download';
+    } else if (updateInfo.url) {
+        updateDownloadBtn.href = updateInfo.url;
+        updateDownloadBtn.textContent = 'View';
+    }
+
+    updateBanner.style.display = 'flex';
+}
+
+updateDismissBtn.addEventListener('click', () => {
+    updateBanner.style.display = 'none';
+    chrome.storage.local.set({ updateAvailable: null });
+});
+
+// ──────────────────────────────────────────────
+// RATING BANNER
+// ──────────────────────────────────────────────
+function showRatingBanner() {
+    ratingBanner.style.display = 'flex';
+}
+
+ratingDismissBtn.addEventListener('click', () => {
+    ratingBanner.style.display = 'none';
+    // Dismiss for 20 more uses before showing again
+    chrome.storage.local.set({ ratingDismissed: true, useCount: 0 });
+});
+
+ratingStarBtn.addEventListener('click', () => {
+    // User clicked star — dismiss permanently
+    chrome.storage.local.set({ ratingDismissed: true });
+    ratingBanner.style.display = 'none';
+});
 
 // ──────────────────────────────────────────────
 // Event Listeners
