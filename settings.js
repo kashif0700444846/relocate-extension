@@ -1,5 +1,5 @@
 // [Relocate] [settings.js] - Settings Page Logic
-// Features: Display toggles, custom presets CRUD with address search,
+// Features: Display toggles, unified presets manager with address search + map click,
 //           route simulation engine with multi-waypoint, autocomplete,
 //           forward/backward/loop direction.
 
@@ -14,7 +14,7 @@ const toggleCoords = document.getElementById('toggleCoords');
 const togglePresets = document.getElementById('togglePresets');
 const toggleRecent = document.getElementById('toggleRecent');
 
-// Custom presets
+// Presets manager
 const presetsTable = document.getElementById('presetsTable');
 const presetsBody = document.getElementById('presetsBody');
 const presetsEmpty = document.getElementById('presetsEmpty');
@@ -23,7 +23,6 @@ const presetNameInput = document.getElementById('presetNameInput');
 const presetLatInput = document.getElementById('presetLatInput');
 const presetLngInput = document.getElementById('presetLngInput');
 const presetSearchInput = document.getElementById('presetSearchInput');
-const presetSearchBtn = document.getElementById('presetSearchBtn');
 const presetAcDropdown = document.getElementById('presetAcDropdown');
 
 // Route simulation
@@ -43,6 +42,8 @@ const routeProgressPct = document.getElementById('routeProgressPct');
 // ──────────────────────────────────────────────
 // STATE
 // ──────────────────────────────────────────────
+let presetMap = null;
+let presetMapMarker = null;
 let routeMap = null;
 let routeLayerGroup = null;
 let routePolyline = null;
@@ -61,7 +62,7 @@ let routeSpeedKmh = 50;
 let routeIndex = 0;
 let routeInterval = null;
 let routePaused = false;
-let routeGoingForward = true; // for loop mode
+let routeGoingForward = true;
 
 let acDebounceTimers = {};
 
@@ -94,7 +95,7 @@ async function nominatimSearch(query, limit) {
     try {
         const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=${limit || 5}&addressdetails=0`;
         const res = await fetch(url, {
-            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.4' }
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.5' }
         });
         const data = await res.json();
         if (!Array.isArray(data)) return [];
@@ -163,15 +164,15 @@ function setupAutocomplete(inputEl, dropdownEl, onSelect) {
 }
 
 // ──────────────────────────────────────────────
-// CUSTOM PRESETS
+// PRESETS MANAGER (unified: defaults + custom)
 // ──────────────────────────────────────────────
-function loadCustomPresets() {
-    chrome.storage.local.get(['customPresets'], (data) => {
-        renderCustomPresets(data.customPresets || []);
+function loadAllPresets() {
+    chrome.storage.local.get(['allPresets'], (data) => {
+        renderAllPresets(data.allPresets || []);
     });
 }
 
-function renderCustomPresets(presets) {
+function renderAllPresets(presets) {
     presetsBody.innerHTML = '';
     if (!presets || presets.length === 0) {
         presetsEmpty.style.display = 'block';
@@ -187,7 +188,7 @@ function renderCustomPresets(presets) {
             <td>${escapeHtml(p.name)}</td>
             <td style="font-family:var(--mono);font-size:12px">${parseFloat(p.lat).toFixed(4)}</td>
             <td style="font-family:var(--mono);font-size:12px">${parseFloat(p.lng).toFixed(4)}</td>
-            <td><button class="preset-del-btn" data-idx="${idx}">🗑️ Delete</button></td>`;
+            <td><button class="preset-del-btn" data-idx="${idx}">🗑️</button></td>`;
         tr.querySelector('.preset-del-btn').addEventListener('click', () => deletePreset(idx));
         presetsBody.appendChild(tr);
     });
@@ -199,25 +200,24 @@ function escapeHtml(str) {
     return div.innerHTML;
 }
 
+function deletePreset(idx) {
+    chrome.storage.local.get(['allPresets'], (data) => {
+        const presets = data.allPresets || [];
+        presets.splice(idx, 1);
+        chrome.storage.local.set({ allPresets: presets }, () => {
+            renderAllPresets(presets);
+        });
+    });
+}
+
 // Preset address search — fills lat/lng/name
 setupAutocomplete(presetSearchInput, presetAcDropdown, (result) => {
     presetNameInput.value = result.name;
     presetLatInput.value = result.lat.toFixed(6);
     presetLngInput.value = result.lng.toFixed(6);
     presetSearchInput.value = result.name;
-});
-
-presetSearchBtn.addEventListener('click', async () => {
-    const query = presetSearchInput.value.trim();
-    if (!query) return;
-    showAcLoading(presetAcDropdown);
-    const results = await nominatimSearch(query, 5);
-    showAcDropdown(presetAcDropdown, results, (result) => {
-        presetNameInput.value = result.name;
-        presetLatInput.value = result.lat.toFixed(6);
-        presetLngInput.value = result.lng.toFixed(6);
-        presetSearchInput.value = result.name;
-    });
+    // Update preset map marker
+    updatePresetMapMarker(result.lat, result.lng);
 });
 
 addPresetBtn.addEventListener('click', () => {
@@ -229,11 +229,11 @@ addPresetBtn.addEventListener('click', () => {
     if (isNaN(lat) || lat < -90 || lat > 90) { alert('Invalid latitude.'); return; }
     if (isNaN(lng) || lng < -180 || lng > 180) { alert('Invalid longitude.'); return; }
 
-    chrome.storage.local.get(['customPresets'], (data) => {
-        const presets = data.customPresets || [];
+    chrome.storage.local.get(['allPresets'], (data) => {
+        const presets = data.allPresets || [];
         presets.push({ name, lat, lng });
-        chrome.storage.local.set({ customPresets: presets }, () => {
-            renderCustomPresets(presets);
+        chrome.storage.local.set({ allPresets: presets }, () => {
+            renderAllPresets(presets);
             presetNameInput.value = '';
             presetLatInput.value = '';
             presetLngInput.value = '';
@@ -242,14 +242,63 @@ addPresetBtn.addEventListener('click', () => {
     });
 });
 
-function deletePreset(idx) {
-    chrome.storage.local.get(['customPresets'], (data) => {
-        const presets = data.customPresets || [];
-        presets.splice(idx, 1);
-        chrome.storage.local.set({ customPresets: presets }, () => {
-            renderCustomPresets(presets);
+// ──────────────────────────────────────────────
+// PRESET MAP (click to pick location)
+// ──────────────────────────────────────────────
+function initPresetMap() {
+    presetMap = L.map('presetMap', { zoomControl: true }).setView([48.86, 2.35], 3);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OSM', maxZoom: 19
+    }).addTo(presetMap);
+
+    presetMap.on('click', (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        presetLatInput.value = lat.toFixed(6);
+        presetLngInput.value = lng.toFixed(6);
+        updatePresetMapMarker(lat, lng);
+
+        // Reverse geocode to get a name suggestion
+        reverseGeocode(lat, lng).then((name) => {
+            if (name && !presetNameInput.value.trim()) {
+                presetNameInput.value = name;
+            }
+            if (name) {
+                presetSearchInput.value = name;
+            }
         });
     });
+}
+
+function updatePresetMapMarker(lat, lng) {
+    if (presetMapMarker) {
+        presetMapMarker.setLatLng([lat, lng]);
+    } else {
+        presetMapMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+                html: '<div style="background:#f59e0b;color:#000;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:3px solid #fff;box-shadow:0 0 10px rgba(245,158,11,0.5)">📌</div>',
+                iconSize: [28, 28], className: ''
+            })
+        }).addTo(presetMap);
+    }
+    presetMap.setView([lat, lng], Math.max(presetMap.getZoom(), 10));
+}
+
+async function reverseGeocode(lat, lng) {
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=14`;
+        const res = await fetch(url, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.5' }
+        });
+        const data = await res.json();
+        if (data && data.display_name) {
+            return data.display_name.split(', ').slice(0, 2).join(', ');
+        }
+        return null;
+    } catch (err) {
+        console.error('[Settings] [ReverseGeo] [ERROR]', err.message);
+        return null;
+    }
 }
 
 // ──────────────────────────────────────────────
@@ -269,9 +318,7 @@ function wpBadgeColor(idx, total) {
     return '#3b82f6';
 }
 
-function wpBadgeLetter(idx, total) {
-    if (idx === 0) return 'A';
-    if (idx === total - 1) return String.fromCharCode(65 + Math.min(idx, 25));
+function wpBadgeLetter(idx) {
     return String.fromCharCode(65 + Math.min(idx, 25));
 }
 
@@ -282,7 +329,7 @@ function updateRouteMap() {
 
     validWps.forEach((wp, i) => {
         const color = wpBadgeColor(i, validWps.length);
-        const letter = wpBadgeLetter(i, validWps.length);
+        const letter = wpBadgeLetter(i);
         L.marker([wp.lat, wp.lng], {
             icon: L.divIcon({
                 html: `<div style="background:${color};color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:2px solid #fff;box-shadow:0 0 8px ${color}80">${letter}</div>`,
@@ -306,7 +353,7 @@ function renderWaypoints() {
     routeWaypointsContainer.innerHTML = '';
 
     waypoints.forEach((wp, idx) => {
-        const letter = wpBadgeLetter(idx, waypoints.length);
+        const letter = wpBadgeLetter(idx);
         const div = document.createElement('div');
         div.className = 'route-field';
         div.innerHTML = `
@@ -320,7 +367,6 @@ function renderWaypoints() {
         const inputEl = div.querySelector(`#${wp.inputId}`);
         const acEl = div.querySelector(`#ac_${wp.inputId}`);
 
-        // Setup autocomplete for this waypoint
         setupAutocomplete(inputEl, acEl, (result) => {
             waypoints[idx].lat = result.lat;
             waypoints[idx].lng = result.lng;
@@ -330,7 +376,6 @@ function renderWaypoints() {
             updateRouteStatus();
         });
 
-        // Enter key fallback
         inputEl.addEventListener('keydown', async (e) => {
             if (e.key !== 'Enter') return;
             const results = await nominatimSearch(inputEl.value.trim(), 1);
@@ -345,7 +390,6 @@ function renderWaypoints() {
             }
         });
 
-        // Remove button
         const removeBtn = div.querySelector('.route-remove-btn');
         if (removeBtn) {
             removeBtn.addEventListener('click', () => {
@@ -439,7 +483,6 @@ routeStartBtn.addEventListener('click', async () => {
     const valid = getValidWaypoints();
     if (valid.length < 2) return;
 
-    // Resume from pause
     if (routePaused && routePoints.length > 0) {
         routePaused = false;
         routeStartBtn.disabled = true;
@@ -450,13 +493,11 @@ routeStartBtn.addEventListener('click', async () => {
         return;
     }
 
-    // Determine waypoint order based on direction
     let orderedWps = [...valid];
     if (routeDirection === 'backward') {
         orderedWps.reverse();
     }
 
-    // Fetch route
     routeStatusText.textContent = 'Fetching route from OSRM...';
     routeStartBtn.disabled = true;
 
@@ -471,14 +512,12 @@ routeStartBtn.addEventListener('click', async () => {
     routeIndex = 0;
     routeGoingForward = true;
 
-    // Draw route
     if (routePolyline) routeLayerGroup.removeLayer(routePolyline);
     routePolyline = L.polyline(
         points.map(p => [p.lat, p.lng]),
         { color: '#f59e0b', weight: 4, opacity: 0.7 }
     ).addTo(routeLayerGroup);
 
-    // Moving marker
     if (routeMovingMarker) routeLayerGroup.removeLayer(routeMovingMarker);
     routeMovingMarker = L.circleMarker([points[0].lat, points[0].lng], {
         radius: 7, fillColor: '#3b82f6', fillOpacity: 1, color: '#fff', weight: 2
@@ -502,18 +541,12 @@ function startSimulationLoop() {
 
     routeInterval = setInterval(() => {
         if (routeDirection === 'loop') {
-            // Loop: bounce forward and backward
             if (routeGoingForward) {
-                if (routeIndex >= routePoints.length - 1) {
-                    routeGoingForward = false;
-                }
+                if (routeIndex >= routePoints.length - 1) routeGoingForward = false;
             } else {
-                if (routeIndex <= 0) {
-                    routeGoingForward = true;
-                }
+                if (routeIndex <= 0) routeGoingForward = true;
             }
         } else {
-            // Forward or backward (already handled by point order)
             if (routeIndex >= routePoints.length - 1) {
                 stopSimulation(true);
                 return;
@@ -626,9 +659,10 @@ document.getElementById('backToPopup').addEventListener('click', (e) => {
 // INIT
 // ──────────────────────────────────────────────
 loadDisplaySettings();
-loadCustomPresets();
+loadAllPresets();
 renderWaypoints();
 
 setTimeout(() => {
+    initPresetMap();
     initRouteMap();
 }, 100);

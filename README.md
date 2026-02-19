@@ -1,24 +1,48 @@
 # Relocate — Location Changer 📍
 
-> **Spoof your GPS location on any website with a single click.**
+> **Everything you need to test, spoof, and simulate GPS locations — in one extension.**
 
-A privacy-first Chrome extension that overrides `navigator.geolocation` to return coordinates you choose. Perfect for developers, testers, and privacy-conscious users.
+A privacy-first Chrome extension that gives you complete control over `navigator.geolocation`. Change your GPS location to anywhere in the world with a single click, simulate movement along real roads, manage unlimited presets, and debug which sites are tracking you. Built for developers, QA testers, and privacy-conscious users.
 
 ---
 
 ## ✨ Features
 
+### 🗺️ Location Control
 | Feature | Description |
 |---------|-------------|
-| 🗺️ **Interactive Map** | Click anywhere on the Leaflet map to set your location |
-| 🔍 **Live Address Search** | Autocomplete powered by OpenStreetMap Nominatim |
+| 🗺️ **Interactive Map** | Click anywhere on the Leaflet map to set your location instantly |
+| 🔍 **Live Address Search** | Autocomplete powered by OpenStreetMap Nominatim — find any address worldwide |
+| 📌 **Unlimited Presets** | Create, manage, and delete your own custom presets from the Settings page |
+| 🌍 **6 Default Presets** | New York, London, Tokyo, Paris, Dubai, Sydney — fully removable |
+| 📍 **Map Click Presets** | Click on the map in Settings to pick coordinates + auto reverse-geocode the name |
 | 🕐 **Recent Locations** | Automatically saves your last 8 locations for quick re-selection |
-| 🌆 **Quick Presets** | One-click: New York, London, Tokyo, Paris, Dubai, Sydney |
 | 🎯 **Accuracy Control** | Adjustable accuracy slider (1m – 100m) |
+
+### 🛣️ Route Simulation
+| Feature | Description |
+|---------|-------------|
+| 🛣️ **Multi-Waypoint Routes** | Add unlimited waypoints (A → B → C → D...) with real road routing |
+| 🔍 **Live Autocomplete** | Search any address for route waypoints — suggestions appear as you type |
+| 🚗 **Driving / Walking / Custom** | Choose your mode with auto-speed presets or set your own |
+| ➡️ **Direction Controls** | Forward (A→Z), Backward (Z→A), or Loop (bounces back and forth) |
+| ▶️ **Play / Pause / Stop** | Full simulation controls with live progress bar and moving marker |
+| 🗺️ **Live Route Map** | See your route drawn on the map with colored waypoint markers |
+
+### ⚙️ Settings & Customization
+| Feature | Description |
+|---------|-------------|
+| ⚙️ **Full Settings Page** | Display toggles, preset management, and route simulation in one place |
+| 🎛️ **Display Toggles** | Show/hide coordinates, presets, or recent locations in the popup |
 | 🌙 **Dark & Light Mode** | Theme toggle with persistent preference |
-| 🔔 **Update Notifications** | Auto-checks GitHub for new versions every 6 hours |
-| ⭐ **Rating Prompt** | Friendly reminder to star the repo after 5+ uses |
 | 🟡 **Toolbar Badge** | Yellow `●` badge when spoofing is active |
+
+### 🔍 Debugging & Privacy
+| Feature | Description |
+|---------|-------------|
+| 🧪 **Debug Console** | Self-test page to verify extension health and spoof status |
+| 🌐 **Location Consumers** | See which tabs/sites are actively using your spoofed location |
+| 🔔 **Update Notifications** | Auto-checks GitHub for new versions every 6 hours |
 | 🛡️ **Privacy-First** | Zero data collection — everything stays local |
 
 ---
@@ -69,7 +93,8 @@ Then load unpacked from `chrome://extensions`.
 
 - **Manifest V3** — Modern Chrome extension architecture
 - **Leaflet.js** — Interactive map (bundled locally, no CDN)
-- **Nominatim API** — Address search (OpenStreetMap)
+- **Nominatim API** — Address search & reverse geocoding (OpenStreetMap)
+- **OSRM API** — Real road routing for route simulation
 - **GitHub Actions** — Auto-release ZIP on every push
 
 ---
@@ -82,6 +107,13 @@ Then load unpacked from `chrome://extensions`.
 ---
 
 ## 📝 Changelog
+
+### v1.5.0
+- 📌 **Unified Presets Manager** — all presets (default + custom) in one table, all deletable
+- 🗺️ **Map Click to Add Presets** — click on the map to pick coordinates with auto reverse-geocode
+- 🔍 **Inline Address Search** — search bar directly in preset form fills lat/lng automatically
+- 🌍 **Default Presets in Settings** — 6 built-in presets shown and manageable (remove/add your own)
+- 📝 **README Overhaul** — comprehensive feature documentation
 
 ### v1.4.0
 - 🔍 **Live Address Autocomplete** — real-time address suggestions in route planner and custom presets

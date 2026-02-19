@@ -40,7 +40,7 @@ const clearRecentBtn = document.getElementById('clearRecentBtn');
 // Section refs for display toggles
 const coordsSection = document.getElementById('coordsSection');
 const presetsSection = document.getElementById('presetsSection');
-const customPresetsContainer = document.getElementById('customPresetsGrid');
+const allPresetsContainer = document.getElementById('allPresetsGrid');
 
 // ──────────────────────────────────────────────
 // Theme (dark / light)
@@ -320,7 +320,7 @@ searchBtn.addEventListener('click', () => {
 chrome.storage.local.get(
     ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme',
         'useCount', 'ratingDismissed', 'updateAvailable', 'recentLocations',
-        'showCoords', 'showPresets', 'showRecent', 'customPresets', 'routeActive'],
+        'showCoords', 'showPresets', 'showRecent', 'allPresets', 'routeActive'],
     (data) => {
         const {
             spoofEnabled = false,
@@ -352,8 +352,8 @@ chrome.storage.local.get(
         // ── Display Settings ──
         applyDisplaySettings(showCoords, showPresets, showRecent);
 
-        // ── Custom Presets ──
-        renderCustomPresetsInPopup(customPresets);
+        // ── All Presets (default + custom) ──
+        renderAllPresetsInPopup(allPresets);
 
         // ── Update Banner Logic ──
         showUpdateBanner(updateAvailable);
@@ -632,9 +632,13 @@ function applyDisplaySettings(showCoords, showPresets, showRecent) {
     if (recentSection && showRecent === false) recentSection.style.display = 'none';
 }
 
-function renderCustomPresetsInPopup(presets) {
-    if (!customPresetsContainer || !Array.isArray(presets) || presets.length === 0) return;
-    customPresetsContainer.innerHTML = '';
+function renderAllPresetsInPopup(presets) {
+    if (!allPresetsContainer) return;
+    allPresetsContainer.innerHTML = '';
+    if (!Array.isArray(presets) || presets.length === 0) {
+        allPresetsContainer.innerHTML = '<span style="font-size:11px;color:#64748b">No presets — add some in Settings ⚙️</span>';
+        return;
+    }
     presets.forEach((p) => {
         const btn = document.createElement('button');
         btn.className = 'preset-btn';
@@ -652,7 +656,7 @@ function renderCustomPresetsInPopup(presets) {
             btn.classList.add('active');
             showToast('📍 Moved to ' + p.name);
         });
-        customPresetsContainer.appendChild(btn);
+        allPresetsContainer.appendChild(btn);
     });
 }
 
@@ -668,7 +672,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
             changes.showRecent ? changes.showRecent.newValue : undefined
         );
     }
-    if (changes.customPresets) {
-        renderCustomPresetsInPopup(changes.customPresets.newValue || []);
+    if (changes.allPresets) {
+        renderAllPresetsInPopup(changes.allPresets.newValue || []);
     }
 });

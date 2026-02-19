@@ -10,23 +10,40 @@ const UPDATE_CHECK_ALARM = 'relocate-update-check';
 // On Install: set default state + schedule update checks
 // ──────────────────────────────────────────────
 chrome.runtime.onInstalled.addListener((details) => {
-  chrome.storage.local.set({
-    spoofEnabled: false,
-    latitude: 48.8566,
-    longitude: 2.3522,
-    accuracy: 10,
-    presetName: 'Paris',
-    theme: 'dark',
-    useCount: 0,
-    ratingDismissed: false,
-    updateAvailable: null
+  // Only seed defaults on first install, not on updates
+  chrome.storage.local.get(['allPresets'], (existing) => {
+    const defaults = {
+      spoofEnabled: false,
+      latitude: 48.8566,
+      longitude: 2.3522,
+      accuracy: 10,
+      presetName: 'Paris',
+      theme: 'dark',
+      useCount: 0,
+      ratingDismissed: false,
+      updateAvailable: null
+    };
+
+    if (!existing.allPresets) {
+      defaults.allPresets = [
+        { name: 'New York 🗽', lat: 40.7128, lng: -74.0060 },
+        { name: 'London 🎡', lat: 51.5074, lng: -0.1278 },
+        { name: 'Tokyo 🗼', lat: 35.6762, lng: 139.6503 },
+        { name: 'Paris 🗼', lat: 48.8566, lng: 2.3522 },
+        { name: 'Dubai 🏙️', lat: 25.2048, lng: 55.2708 },
+        { name: 'Sydney 🦘', lat: -33.8688, lng: 151.2093 }
+      ];
+    }
+
+    chrome.storage.local.set(defaults);
   });
+
   chrome.action.setBadgeText({ text: '' });
 
   // Schedule update check every 6 hours
   chrome.alarms.create(UPDATE_CHECK_ALARM, {
-    delayInMinutes: 1,       // first check 1 min after install
-    periodInMinutes: 360     // then every 6 hours
+    delayInMinutes: 1,
+    periodInMinutes: 360
   });
 
   console.log('[Relocate] [Install] [SUCCESS] Extension installed. Reason:', details.reason);
