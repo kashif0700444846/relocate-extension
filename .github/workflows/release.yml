@@ -1,0 +1,58 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION-${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+      - name: Create ZIP
+        run: |
+          mkdir -p dist
+          zip -r dist/relocate-v${{ steps.version.outputs.version }}.zip \
+            manifest.json \
+            background.js \
+            content.js \
+            inject.js \
+            popup.html \
+            popup.css \
+            popup.js \
+            debug.html \
+            debug.js \
+            icons/ \
+            lib/ \
+            README.md \
+            -x "*.git*" "node_modules/*" "dist/*" "generate-icons.js" ".github/*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Relocate ${{ steps.version.outputs.tag }}"
+          body: |
+            ## 📍 Relocate — Location Changer
+
+            **Auto-release from push to main.**
+
+            ### Installation
+            1. Download `relocate-v${{ steps.version.outputs.version }}.zip` below
+            2. Unzip it
+            3. Go to `chrome://extensions` → Enable Developer Mode
+            4. Click "Load unpacked" → select the folder
+          files: dist/relocate-v${{ steps.version.outputs.version }}.zip
+          generate_release_notes: true

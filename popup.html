@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relocate 📍</title>
+  <link rel="stylesheet" href="lib/leaflet.css" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">📍</span>
+      <div>
+        <h1 class="logo-title">Relocate</h1>
+        <p class="logo-sub">Location Changer</p>
+      </div>
+    </div>
+    <div class="header-controls">
+      <button class="theme-btn" id="themeBtn" title="Toggle dark/light mode">🌙</button>
+      <label class="toggle" id="masterToggle" title="Enable / Disable spoofing">
+        <input type="checkbox" id="spoofToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- ===== STATUS BADGE ===== -->
+  <div class="status-bar" id="statusBar">
+    <span class="status-dot" id="statusDot"></span>
+    <span id="statusText">Spoofing OFF — Using real location</span>
+  </div>
+
+  <!-- ===== MAP ===== -->
+  <div class="map-container">
+    <div id="map"></div>
+    <div class="map-hint">📍 Click on map to set location</div>
+  </div>
+
+  <!-- ===== COORDINATES ===== -->
+  <div class="coords-row">
+    <div class="input-group">
+      <label for="latInput">Latitude</label>
+      <input type="number" id="latInput" step="0.000001" min="-90" max="90" placeholder="e.g. 35.6762" />
+    </div>
+    <div class="input-group">
+      <label for="lngInput">Longitude</label>
+      <input type="number" id="lngInput" step="0.000001" min="-180" max="180" placeholder="e.g. 139.6503" />
+    </div>
+  </div>
+
+  <!-- ===== ACCURACY SLIDER ===== -->
+  <div class="slider-row">
+    <label for="accuracySlider">Accuracy: <span id="accuracyValue">10</span>m</label>
+    <input type="range" id="accuracySlider" min="1" max="100" step="1" value="10" />
+  </div>
+
+  <!-- ===== SEARCH + AUTOCOMPLETE ===== -->
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="🔍 Search an address or city..." autocomplete="off" />
+    <button class="btn-search" id="searchBtn">Go</button>
+    <div class="autocomplete-list" id="autocompleteList"></div>
+  </div>
+
+  <!-- ===== PRESETS ===== -->
+  <div class="presets-label">Quick Presets</div>
+  <div class="presets-grid">
+    <button class="preset-btn" data-lat="40.7128" data-lng="-74.0060" data-name="New York 🗽">New York 🗽</button>
+    <button class="preset-btn" data-lat="51.5074" data-lng="-0.1278" data-name="London 🎡">London 🎡</button>
+    <button class="preset-btn" data-lat="35.6762" data-lng="139.6503" data-name="Tokyo 🗼">Tokyo 🗼</button>
+    <button class="preset-btn" data-lat="48.8566" data-lng="2.3522" data-name="Paris 🗼">Paris 🗼</button>
+    <button class="preset-btn" data-lat="25.2048" data-lng="55.2708" data-name="Dubai 🏙️">Dubai 🏙️</button>
+    <button class="preset-btn" data-lat="-33.8688" data-lng="151.2093" data-name="Sydney 🦘">Sydney 🦘</button>
+  </div>
+
+  <!-- ===== ACTION BUTTONS ===== -->
+  <div class="actions-row">
+    <button class="btn-apply" id="applyBtn">✅ Apply Location</button>
+    <button class="btn-reset" id="resetBtn">🔄 Real Location</button>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <a href="https://github.com/kashif0700444846/relocate-extension" target="_blank">⭐ GitHub</a>
+    &nbsp;|&nbsp;
+    <a href="#" id="debugLink">🛠️ Debug</a>
+    &nbsp;|&nbsp;
+    <a href="#" id="mapsTestLink">🗺️ Test on Maps</a>
+  </footer>
+
+  <script src="lib/leaflet.js"></script>
+  <script src="popup.js"></script>
+</body>
+
+</html>

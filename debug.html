@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relocate — Debug Console</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0a1a;
+            --card: #111128;
+            --border: rgba(245, 158, 11, 0.3);
+            --accent: #f59e0b;
+            --green: #10b981;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --mono: 'JetBrains Mono', 'Consolas', monospace;
+        }
+
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-icon {
+            font-size: 36px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f59e0b, #fb923c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-on {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid var(--green);
+        }
+
+        .badge-off {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .card h2 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--accent);
+            margin-bottom: 14px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 13px;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--muted);
+        }
+
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-value.green {
+            color: var(--green);
+        }
+
+        .stat-value.red {
+            color: var(--red);
+        }
+
+        .stat-value.yellow {
+            color: var(--yellow);
+        }
+
+        .log-area {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            font-family: var(--mono);
+            font-size: 11.5px;
+            min-height: 160px;
+            max-height: 280px;
+            overflow-y: auto;
+            color: var(--text);
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .log-time {
+            color: var(--muted);
+            flex-shrink: 0;
+        }
+
+        .log-ok {
+            color: var(--green);
+        }
+
+        .log-warn {
+            color: var(--yellow);
+        }
+
+        .log-err {
+            color: var(--red);
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #d97706;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            border: 1px solid var(--red);
+        }
+
+        .btn-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--green);
+            border: 1px solid var(--green);
+        }
+
+        .test-result {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .test-result h2 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--accent);
+            margin-bottom: 14px;
+        }
+
+        .test-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 13px;
+        }
+
+        .test-row:last-child {
+            border-bottom: none;
+        }
+
+        .test-icon {
+            width: 18px;
+            text-align: center;
+        }
+
+        .test-name {
+            flex: 1;
+            color: var(--muted);
+        }
+
+        .test-val {
+            font-family: var(--mono);
+            font-size: 11px;
+        }
+
+        .test-val.green {
+            color: var(--green);
+        }
+
+        .test-val.red {
+            color: var(--red);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 11px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <span class="header-icon">📍</span>
+        <div>
+            <h1>Relocate — Debug Console</h1>
+            <p>Real-time extension status &amp; GPS spoof verification</p>
+        </div>
+        <span id="globalBadge" class="badge badge-off">SPOOF OFF</span>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-primary" id="btnRefresh">🔄 Refresh Status</button>
+        <button class="btn btn-green" id="btnMaps">🗺️ Test on Google Maps</button>
+        <button class="btn btn-danger" id="btnReset">⛔ Disable Spoof</button>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>📍 Spoof State</h2>
+            <div class="stat-row"><span class="stat-label">Enabled</span> <span class="stat-value"
+                    id="s-enabled">—</span></div>
+            <div class="stat-row"><span class="stat-label">Latitude</span> <span class="stat-value" id="s-lat">—</span>
+            </div>
+            <div class="stat-row"><span class="stat-label">Longitude</span> <span class="stat-value" id="s-lng">—</span>
+            </div>
+            <div class="stat-row"><span class="stat-label">Accuracy</span> <span class="stat-value" id="s-acc">—</span>
+            </div>
+            <div class="stat-row"><span class="stat-label">Preset Name</span> <span class="stat-value"
+                    id="s-preset">—</span></div>
+        </div>
+
+        <div class="card">
+            <h2>🔍 Geolocation API Test</h2>
+            <div class="stat-row"><span class="stat-label">API Available</span> <span class="stat-value"
+                    id="t-api">—</span></div>
+            <div class="stat-row"><span class="stat-label">Returned Lat</span> <span class="stat-value"
+                    id="t-lat">—</span></div>
+            <div class="stat-row"><span class="stat-label">Returned Lng</span> <span class="stat-value"
+                    id="t-lng">—</span></div>
+            <div class="stat-row"><span class="stat-label">Match Expected?</span> <span class="stat-value"
+                    id="t-match">—</span></div>
+            <div class="stat-row"><span class="stat-label">Time elapsed</span> <span class="stat-value"
+                    id="t-time">—</span></div>
+        </div>
+    </div>
+
+    <div class="test-result">
+        <h2>🧪 Extension Self-Test</h2>
+        <div class="test-row">
+            <span class="test-icon" id="x-storage">⏳</span>
+            <span class="test-name">chrome.storage.local readable</span>
+            <span class="test-val" id="x-storage-val">Testing...</span>
+        </div>
+        <div class="test-row">
+            <span class="test-icon" id="x-inject">⏳</span>
+            <span class="test-name">inject.js event channel reachable</span>
+            <span class="test-val" id="x-inject-val">Testing...</span>
+        </div>
+        <div class="test-row">
+            <span class="test-icon" id="x-geo">⏳</span>
+            <span class="test-name">navigator.geolocation present</span>
+            <span class="test-val" id="x-geo-val">Testing...</span>
+        </div>
+        <div class="test-row">
+            <span class="test-icon" id="x-override">⏳</span>
+            <span class="test-name">Spoof active when enabled</span>
+            <span class="test-val" id="x-override-val">Waiting...</span>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+        <h2>📋 Live Log</h2>
+        <div class="log-area" id="logArea"></div>
+    </div>
+
+    <footer>
+        Relocate 📍 Debug Page &bull;
+        <a href="https://github.com/kashif0700444846/relocate-extension" target="_blank">GitHub</a>
+    </footer>
+
+    <!-- External script only — inline scripts blocked by MV3 CSP -->
+    <script src="debug.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,392 @@
+// [Relocate] [popup.js] - Popup Logic
+// Features: Leaflet map, live autocomplete search, theme toggle, badge sync.
+
+'use strict';
+
+// ──────────────────────────────────────────────
+// DOM References
+// ──────────────────────────────────────────────
+const spoofToggle = document.getElementById('spoofToggle');
+const statusBar = document.getElementById('statusBar');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const latInput = document.getElementById('latInput');
+const lngInput = document.getElementById('lngInput');
+const accuracySlider = document.getElementById('accuracySlider');
+const accuracyValue = document.getElementById('accuracyValue');
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const applyBtn = document.getElementById('applyBtn');
+const resetBtn = document.getElementById('resetBtn');
+const presetBtns = document.querySelectorAll('.preset-btn');
+const themeBtn = document.getElementById('themeBtn');
+const autocompleteList = document.getElementById('autocompleteList');
+
+// ──────────────────────────────────────────────
+// Theme (dark / light)
+// ──────────────────────────────────────────────
+let currentTheme = 'dark';
+
+function applyTheme(theme) {
+    currentTheme = theme;
+    if (theme === 'light') {
+        document.body.classList.add('light');
+        themeBtn.textContent = '☀️';
+        themeBtn.title = 'Switch to dark mode';
+    } else {
+        document.body.classList.remove('light');
+        themeBtn.textContent = '🌙';
+        themeBtn.title = 'Switch to light mode';
+    }
+}
+
+themeBtn.addEventListener('click', () => {
+    const next = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    chrome.storage.local.set({ theme: next });
+});
+
+// ──────────────────────────────────────────────
+// Leaflet Map
+// ──────────────────────────────────────────────
+let map, marker;
+
+function initMap(lat, lng) {
+    if (map) {
+        map.setView([lat, lng], 13);
+        if (marker) marker.setLatLng([lat, lng]);
+        return;
+    }
+
+    map = L.map('map', { zoomControl: true }).setView([lat, lng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Custom yellow marker
+    const markerIcon = L.divIcon({
+        html: `<div style="
+          background: linear-gradient(135deg, #f59e0b, #fb923c);
+          width: 22px; height: 22px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid rgba(255,255,255,0.7);
+          box-shadow: 0 0 14px rgba(245,158,11,0.7);
+        "></div>`,
+        iconSize: [22, 22],
+        className: ''
+    });
+
+    marker = L.marker([lat, lng], { draggable: true, icon: markerIcon }).addTo(map);
+
+    marker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        setCoords(pos.lat, pos.lng);
+    });
+
+    map.on('click', (e) => {
+        const { lat, lng } = e.latlng;
+        marker.setLatLng([lat, lng]);
+        setCoords(lat, lng);
+        clearPresets();
+    });
+}
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+function setCoords(lat, lng) {
+    latInput.value = parseFloat(lat).toFixed(6);
+    lngInput.value = parseFloat(lng).toFixed(6);
+}
+
+function clearPresets() {
+    presetBtns.forEach(b => b.classList.remove('active'));
+}
+
+function showToast(msg, color) {
+    let toast = document.getElementById('rel-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'rel-toast';
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    if (color) toast.style.background = color;
+    else toast.style.background = '';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function updateStatusUI(enabled, presetName) {
+    if (enabled) {
+        spoofToggle.checked = true;
+        statusBar.classList.add('active');
+        statusDot.classList.add('active');
+        statusText.textContent = 'Spoofing ON — ' + (presetName || 'Custom Location');
+    } else {
+        spoofToggle.checked = false;
+        statusBar.classList.remove('active');
+        statusDot.classList.remove('active');
+        statusText.textContent = 'Spoofing OFF — Using real location';
+    }
+}
+
+function notifyTabs(state) {
+    chrome.runtime.sendMessage({ type: 'STATE_CHANGED', ...state });
+}
+
+// ──────────────────────────────────────────────
+// LIVE AUTOCOMPLETE SEARCH
+// ──────────────────────────────────────────────
+let acDebounceTimer = null;
+let acResults = [];
+let acHighlighted = -1;
+
+function openAcList(items) {
+    autocompleteList.innerHTML = '';
+    acResults = items;
+    acHighlighted = -1;
+
+    if (!items.length) {
+        autocompleteList.innerHTML = '<div class="autocomplete-loading">No results found</div>';
+        autocompleteList.classList.add('open');
+        return;
+    }
+
+    items.forEach((item, idx) => {
+        const parts = item.display_name.split(', ');
+        const main = parts[0];
+        const sub = parts.slice(1, 3).join(', ');
+
+        const el = document.createElement('div');
+        el.className = 'autocomplete-item';
+        el.innerHTML = `
+          <span class="autocomplete-icon">📍</span>
+          <div>
+            <div class="autocomplete-main">${main}</div>
+            <div class="autocomplete-sub">${sub}</div>
+          </div>`;
+
+        el.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            selectAcItem(idx);
+        });
+
+        autocompleteList.appendChild(el);
+    });
+
+    autocompleteList.classList.add('open');
+}
+
+function closeAcList() {
+    autocompleteList.classList.remove('open');
+    acResults = [];
+    acHighlighted = -1;
+}
+
+function selectAcItem(idx) {
+    const item = acResults[idx];
+    if (!item) return;
+
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lon);
+    const parts = item.display_name.split(', ');
+
+    setCoords(lat, lng);
+    if (map && marker) {
+        map.setView([lat, lng], 14);
+        marker.setLatLng([lat, lng]);
+    }
+
+    searchInput.value = parts[0];
+    clearPresets();
+    closeAcList();
+    showToast(`📍 ${parts[0]}`);
+}
+
+async function fetchSuggestions(query) {
+    if (!query || query.length < 2) { closeAcList(); return; }
+
+    autocompleteList.innerHTML = '<div class="autocomplete-loading">🔍 Searching...</div>';
+    autocompleteList.classList.add('open');
+
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=0`;
+        const res = await fetch(url, {
+            headers: {
+                'Accept-Language': 'en',
+                'User-Agent': 'RelocateExtension/1.1'
+            }
+        });
+        const data = await res.json();
+        openAcList(data);
+    } catch (err) {
+        console.error('[Relocate] [Autocomplete] [ERROR]', err.message);
+        closeAcList();
+    }
+}
+
+searchInput.addEventListener('input', () => {
+    clearTimeout(acDebounceTimer);
+    const q = searchInput.value.trim();
+    if (!q) { closeAcList(); return; }
+    acDebounceTimer = setTimeout(() => fetchSuggestions(q), 350);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+    const items = autocompleteList.querySelectorAll('.autocomplete-item');
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        acHighlighted = Math.min(acHighlighted + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('highlighted', i === acHighlighted));
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        acHighlighted = Math.max(acHighlighted - 1, -1);
+        items.forEach((el, i) => el.classList.toggle('highlighted', i === acHighlighted));
+    } else if (e.key === 'Enter') {
+        if (acHighlighted >= 0) {
+            e.preventDefault();
+            selectAcItem(acHighlighted);
+        } else {
+            if (acResults.length > 0) selectAcItem(0);
+        }
+    } else if (e.key === 'Escape') {
+        closeAcList();
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-row')) closeAcList();
+});
+
+searchBtn.addEventListener('click', () => {
+    if (acResults.length > 0) {
+        selectAcItem(0);
+    } else {
+        fetchSuggestions(searchInput.value.trim()).then(() => {
+            if (acResults.length > 0) selectAcItem(0);
+        });
+    }
+});
+
+// ──────────────────────────────────────────────
+// Load State & Initialize
+// ──────────────────────────────────────────────
+chrome.storage.local.get(
+    ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName', 'theme'],
+    (data) => {
+        const {
+            spoofEnabled = false,
+            latitude = 48.8566,
+            longitude = 2.3522,
+            accuracy = 10,
+            presetName = '',
+            theme = 'dark'
+        } = data;
+
+        applyTheme(theme);
+        latInput.value = latitude;
+        lngInput.value = longitude;
+        accuracySlider.value = accuracy;
+        accuracyValue.textContent = accuracy;
+        updateStatusUI(spoofEnabled, presetName);
+
+        setTimeout(() => initMap(latitude, longitude), 100);
+    }
+);
+
+// ──────────────────────────────────────────────
+// Event Listeners
+// ──────────────────────────────────────────────
+
+spoofToggle.addEventListener('change', () => {
+    const enabled = spoofToggle.checked;
+    chrome.storage.local.get(['latitude', 'longitude', 'accuracy', 'presetName'], (data) => {
+        const newState = { spoofEnabled: enabled, ...data };
+        chrome.storage.local.set(newState, () => {
+            updateStatusUI(enabled, data.presetName);
+            notifyTabs(newState);
+            showToast(enabled ? '📍 Spoofing Enabled!' : '🔴 Spoofing Off');
+        });
+    });
+});
+
+accuracySlider.addEventListener('input', () => {
+    accuracyValue.textContent = accuracySlider.value;
+});
+
+function syncMapToInputs() {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+    if (!isNaN(lat) && !isNaN(lng) && map && marker) {
+        marker.setLatLng([lat, lng]);
+        map.setView([lat, lng], 13);
+    }
+}
+latInput.addEventListener('change', syncMapToInputs);
+lngInput.addEventListener('change', syncMapToInputs);
+
+presetBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+        const lat = parseFloat(btn.dataset.lat);
+        const lng = parseFloat(btn.dataset.lng);
+        const name = btn.dataset.name;
+        setCoords(lat, lng);
+        if (map && marker) {
+            map.setView([lat, lng], 12);
+            marker.setLatLng([lat, lng]);
+        }
+        clearPresets();
+        btn.classList.add('active');
+        showToast('📍 Moved to ' + name);
+    });
+});
+
+applyBtn.addEventListener('click', () => {
+    const lat = parseFloat(latInput.value);
+    const lng = parseFloat(lngInput.value);
+    const accuracy = parseInt(accuracySlider.value, 10);
+
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        showToast('❌ Invalid coordinates!', '#ef4444');
+        return;
+    }
+
+    const activePreset = document.querySelector('.preset-btn.active');
+    const presetName = activePreset
+        ? activePreset.dataset.name
+        : (lat.toFixed(4) + ', ' + lng.toFixed(4));
+
+    const newState = { spoofEnabled: true, latitude: lat, longitude: lng, accuracy, presetName };
+    chrome.storage.local.set(newState, () => {
+        spoofToggle.checked = true;
+        updateStatusUI(true, presetName);
+        notifyTabs(newState);
+        showToast('📍 Location set to ' + presetName);
+    });
+});
+
+resetBtn.addEventListener('click', () => {
+    const newState = { spoofEnabled: false };
+    chrome.storage.local.set(newState, () => {
+        spoofToggle.checked = false;
+        updateStatusUI(false, '');
+        notifyTabs(newState);
+        clearPresets();
+        showToast('🔄 Real GPS location restored', '#22c55e');
+    });
+});
+
+document.getElementById('debugLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: chrome.runtime.getURL('debug.html') });
+});
+
+document.getElementById('mapsTestLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: 'https://www.google.com/maps' });
+});
