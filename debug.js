@@ -142,3 +142,19 @@ document.getElementById('btnReset').addEventListener('click', resetSpoof);
 
 log('[Debug] Relocate Debug Console loaded. Running self-tests...', 'info');
 refresh();
+
+// ──────────────────────────────────────────────
+// LIVE REFRESH: auto-update when state changes from popup or background
+// ──────────────────────────────────────────────
+chrome.storage.onChanged.addListener(function (changes, area) {
+    if (area !== 'local') return;
+    // Only refresh for relevant keys
+    var watchKeys = ['spoofEnabled', 'latitude', 'longitude', 'accuracy', 'presetName'];
+    var shouldRefresh = Object.keys(changes).some(function (key) {
+        return watchKeys.indexOf(key) !== -1;
+    });
+    if (shouldRefresh) {
+        log('[LiveSync] State changed externally — refreshing...', 'info');
+        refresh();
+    }
+});

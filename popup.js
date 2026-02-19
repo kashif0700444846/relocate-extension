@@ -155,6 +155,27 @@ function notifyTabs(state) {
 }
 
 // ──────────────────────────────────────────────
+// REVERSE GEOCODE (for map-clicked coords)
+// ──────────────────────────────────────────────
+async function reverseGeocode(lat, lng) {
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16`;
+        const res = await fetch(url, {
+            headers: { 'Accept-Language': 'en', 'User-Agent': 'RelocateExtension/1.2' }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.display_name) return null;
+        // Return short name: first 2 comma-separated parts
+        const parts = data.display_name.split(', ');
+        return parts.slice(0, 2).join(', ');
+    } catch (err) {
+        console.warn('[Relocate] [ReverseGeocode] [WARN]', err.message);
+        return null;
+    }
+}
+
+// ──────────────────────────────────────────────
 // LIVE AUTOCOMPLETE SEARCH
 // ──────────────────────────────────────────────
 let acDebounceTimer = null;
@@ -534,9 +555,11 @@ applyBtn.addEventListener('click', () => {
     }
 
     const activePreset = document.querySelector('.preset-btn.active');
+    // Name priority: preset name > search input > reverse geocode
+    const searchName = searchInput.value.trim();
     const presetName = activePreset
         ? activePreset.dataset.name
-        : (lat.toFixed(4) + ', ' + lng.toFixed(4));
+        : (searchName || lat.toFixed(4) + ', ' + lng.toFixed(4));
 
     const newState = { spoofEnabled: true, latitude: lat, longitude: lng, accuracy, presetName };
     chrome.storage.local.set(newState, () => {
@@ -545,8 +568,15 @@ applyBtn.addEventListener('click', () => {
         notifyTabs(newState);
         showToast('📍 Location set to ' + presetName);
 
-        // Save to recent locations
-        addToRecentLocations({ lat, lng, name: presetName });
+        // Save to recent locations — if name is just coords, reverse geocode it
+        const isJustCoords = !activePreset && !searchName;
+        if (isJustCoords) {
+            reverseGeocode(lat, lng).then((address) => {
+                addToRecentLocations({ lat, lng, name: address || presetName });
+            });
+        } else {
+            addToRecentLocations({ lat, lng, name: presetName });
+        }
     });
 });
 

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Relocate — Location Changer",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Spoof your GPS location on any website. Change your geolocation to anywhere in the world with a single click. Privacy-first, developer-friendly GPS location changer for Chrome.",
   "author": "kashif0700444846",
   "permissions": [
